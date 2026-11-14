@@ -1,5 +1,5 @@
 // The robot helper: an industrial arm on a floor rail, with a camera head and a light ring that shows its mood.
-import * as THREE from 'three';
+import * as THREE from '../vendor/three/three.module.js';
 import * as tex from './textures.js';
 import { LAYOUT } from './garage.js';
 

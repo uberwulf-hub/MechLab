@@ -1,8 +1,8 @@
 // The parts catalog. Every part is modelled here from simple shapes, so it can be any colour.
 // The mech faces +Z (towards the workstation). Its LEFT side is +X, so `side` is +1 for left parts, -1 for right.
-import * as THREE from 'three';
+import * as THREE from '../vendor/three/three.module.js';
 import * as tex from './textures.js';
-import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { RoundedBoxGeometry } from '../vendor/three/addons/geometries/RoundedBoxGeometry.js';
 
 // ---------- materials shared by one mech (repainting changes them all at once) ----------
 export function makeMaterials(paint) {

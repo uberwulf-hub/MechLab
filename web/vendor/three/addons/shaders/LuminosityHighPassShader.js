@@ -1,10 +1,10 @@
 import {
 	Color
-} from 'three';
+} from '../../three.module.js';
 
 /**
  * @module LuminosityHighPassShader
- * @three_import import { LuminosityHighPassShader } from 'three/addons/shaders/LuminosityHighPassShader.js';
+ * @three_import import { LuminosityHighPassShader } from './LuminosityHighPassShader.js';
  */
 
 /**

@@ -1,5 +1,5 @@
 // The mech on the assembly stand: which part is on which socket, the part being held out for fitting, paint and animation.
-import * as THREE from 'three';
+import * as THREE from '../vendor/three/three.module.js';
 import { SLOTS, PARTS, partById, buildPart, makeMaterials, repaint } from './parts.js';
 
 /** Size and length limits for customising a part. */

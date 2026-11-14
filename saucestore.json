@@ -9,7 +9,7 @@
   },
   "requirements": [
     "Windows 10 or 11 (64-bit) with the Microsoft Edge WebView2 Runtime (built into Windows 11)",
-    "Android 8.0 or newer, with OpenGL ES 3",
+    "Android 8.0 or newer, with OpenGL ES 3 and an up-to-date Android System WebView (from the Play Store)",
     "A microphone to talk to the robot helper (you can type instead)"
   ],
   "rightsConfirmed": true,

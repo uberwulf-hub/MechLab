@@ -1,6 +1,6 @@
 // The test planet: alien terrain, sky, plants, rocks, crystal spires, acid pools, the landing pad and the crystals to
 // collect. Everything is generated from a fixed seed, so it's the same planet every time.
-import * as THREE from 'three';
+import * as THREE from '../../vendor/three/three.module.js';
 import { rng } from '../textures.js';
 
 // ---------- noise ----------

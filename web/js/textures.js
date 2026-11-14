@@ -1,5 +1,5 @@
 // Every texture in the game is drawn here in code, so the game ships no outside art.
-import * as THREE from 'three';
+import * as THREE from '../vendor/three/three.module.js';
 
 function canvas(w, h = w) {
   const c = document.createElement('canvas');

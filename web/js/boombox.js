@@ -1,5 +1,5 @@
 // The boombox on the workstation desk: speakers that pump with the music and a little screen showing the song.
-import * as THREE from 'three';
+import * as THREE from '../vendor/three/three.module.js';
 import * as tex from './textures.js';
 
 export class Boombox {

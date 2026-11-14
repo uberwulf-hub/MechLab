@@ -1,12 +1,12 @@
 // Simulation mode: drop the finished mech onto an alien planet and pilot it.
 // Walk, run, jump (and fly with jump jets), fire whatever the arms carry, collect crystals and zap creatures.
 // What the mech can do comes from its parts: legs set speed and jump, the back pack energy and jets, arms the weapons.
-import * as THREE from 'three';
-import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
-import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
-import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
-import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
-import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import * as THREE from '../../vendor/three/three.module.js';
+import { EffectComposer } from '../../vendor/three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from '../../vendor/three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from '../../vendor/three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from '../../vendor/three/addons/postprocessing/OutputPass.js';
+import { RoomEnvironment } from '../../vendor/three/addons/environments/RoomEnvironment.js';
 import { Planet, height, BASE } from './planet.js';
 import { Creatures } from './creatures.js';
 import { Mech } from '../mech.js';

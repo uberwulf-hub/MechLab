@@ -1,6 +1,6 @@
 // Blueprint mode: the mech drawn as white lines on blueprint blue, front/side/top/3D views with real-size
 // dimensions, and a build plan for the real titan that can be printed.
-import * as THREE from 'three';
+import * as THREE from '../vendor/three/three.module.js';
 import { DEFAULT_REAL, buildPlan, scale, size, length, TOOLS } from './realbuild.js';
 import { SLOTS, partById } from './parts.js';
 

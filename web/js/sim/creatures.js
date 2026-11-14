@@ -3,7 +3,7 @@
 //   Floater: glowing jellyfish that drifts overhead. Harmless, worth extra points.
 //   Stomper: big horned beast. Roars, then charges. Takes several hits.
 // Zapped creatures pop into sparkles and come back somewhere else later.
-import * as THREE from 'three';
+import * as THREE from '../../vendor/three/three.module.js';
 import { height } from './planet.js';
 
 const TYPES = {

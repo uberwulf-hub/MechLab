@@ -1,5 +1,5 @@
 // Visual effects: welding sparks and the scan glow when a part arrives on the lift.
-import * as THREE from 'three';
+import * as THREE from '../vendor/three/three.module.js';
 
 const MAX = 600;
 

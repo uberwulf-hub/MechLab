@@ -1,5 +1,5 @@
 // The garage: floor, walls, lights, the assembly gantry, the workstation, the holo table and props.
-import * as THREE from 'three';
+import * as THREE from '../vendor/three/three.module.js';
 import * as tex from './textures.js';
 import { container, makeMaterials, motor } from './parts.js';
 
