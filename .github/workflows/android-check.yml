@@ -33,8 +33,13 @@ jobs:
         run: |
           set -x
           SDK="$ANDROID_HOME"
+          # keep the emulator's virtual phone in one known folder (tool versions disagree on the default)
+          export ANDROID_AVD_HOME="$HOME/.android/avd"
+          mkdir -p "$ANDROID_AVD_HOME"
+          echo "ANDROID_AVD_HOME=$ANDROID_AVD_HOME" >> "$GITHUB_ENV"
           yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --install "emulator" "platform-tools" "system-images;android-30;default;x86_64" > /dev/null
-          echo no | "$SDK/cmdline-tools/latest/bin/avdmanager" create avd -n check -k "system-images;android-30;default;x86_64" -d pixel_5 --force
+          echo no | "$SDK/cmdline-tools/latest/bin/avdmanager" create avd -n check -k "system-images;android-30;default;x86_64" -d pixel_5 --force -p "$ANDROID_AVD_HOME/check.avd"
+          ls -la "$ANDROID_AVD_HOME"
           ls -l /dev/kvm || true
           nohup "$SDK/emulator/emulator" -avd check -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -accel on -memory 3072 > emulator.log 2>&1 &
           "$SDK/platform-tools/adb" wait-for-device &
