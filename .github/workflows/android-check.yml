@@ -1,0 +1,58 @@
+# Opens the Android app on an emulator and saves its crash log and a screenshot, to find start-up problems
+# without a phone. Run it from Actions > Android check > Run workflow.
+name: Android check
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  emulator:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '10.0.x' }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '21' }
+      - run: dotnet workload install android
+      - name: Build the .apk (test signed)
+        run: |
+          dotnet publish src/MechGarage.Android -c Release -f net10.0-android \
+            -p:AndroidSdkDirectory="$ANDROID_HOME" -p:JavaSdkDirectory="$JAVA_HOME" -o out/android
+          cp "$(ls out/android/*-Signed.apk | head -1)" app.apk
+      - name: Allow the emulator to use hardware acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Start an Android emulator
+        run: |
+          set -x
+          SDK="$ANDROID_HOME"
+          yes | "$SDK/cmdline-tools/latest/bin/sdkmanager" --install "emulator" "platform-tools" "system-images;android-30;default;x86_64" > /dev/null
+          echo no | "$SDK/cmdline-tools/latest/bin/avdmanager" create avd -n check -k "system-images;android-30;default;x86_64" -d pixel_5 --force
+          ls -l /dev/kvm || true
+          nohup "$SDK/emulator/emulator" -avd check -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect -accel on -memory 3072 > emulator.log 2>&1 &
+          "$SDK/platform-tools/adb" wait-for-device &
+          for i in $(seq 1 120); do
+            if [ "$("$SDK/platform-tools/adb" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" = "1" ]; then echo "Booted after $((i*5)) s"; break; fi
+            sleep 5
+          done
+          if [ "$("$SDK/platform-tools/adb" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" != "1" ]; then
+            echo "::error::The emulator didn't boot. Its log:"; tail -80 emulator.log; exit 1
+          fi
+      - name: Install, open, and record what happens
+        run: PATH="$ANDROID_HOME/platform-tools:$PATH" bash tools/android-smoke.sh
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: android-check
+          path: |
+            logcat.txt
+            crash.txt
+            screen.png
+            emulator.log

@@ -1,0 +1,10 @@
+# Build output
+bin/
+obj/
+artifacts/
+*.user
+.vs/
+# Signing settings and keys never live here (they're in ~/SauceStore Keys)
+*.jks
+*.keystore
+*.pfx

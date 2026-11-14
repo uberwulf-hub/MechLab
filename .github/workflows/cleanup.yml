@@ -1,0 +1,33 @@
+# One-time cleanup from before MechLab went public: deletes the old v0.1.0/v0.2.0 releases and tags (they point at
+# the old history) and the old Android key cache (signing now uses repository secrets only).
+# Run it from Actions > Clean up old releases > Run workflow. Safe to run again; it skips anything already gone.
+name: Clean up old releases
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete old releases, tags and the old key cache
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          for tag in v0.1.0 v0.2.0; do
+            if gh release view "$tag" --repo "$REPO" >/dev/null 2>&1; then
+              gh release delete "$tag" --repo "$REPO" --yes --cleanup-tag && echo "Deleted release and tag $tag"
+            elif gh api "repos/$REPO/git/refs/tags/$tag" >/dev/null 2>&1; then
+              gh api -X DELETE "repos/$REPO/git/refs/tags/$tag" && echo "Deleted tag $tag"
+            else
+              echo "$tag already gone"
+            fi
+          done
+          gh cache delete mechgarage-android-signing-key-v1 --repo "$REPO" && echo "Deleted the old key cache" || echo "Old key cache already gone"
+          echo "Releases left:"; gh release list --repo "$REPO"
+          echo "Caches left:"; gh cache list --repo "$REPO"

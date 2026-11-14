@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <style name="GarageTheme" parent="@android:style/Theme.Material.NoActionBar.Fullscreen">
+    <item name="android:windowBackground">@color/garage_dark</item>
+    <item name="android:statusBarColor">@color/garage_dark</item>
+    <item name="android:navigationBarColor">@color/garage_dark</item>
+  </style>
+  <color name="garage_dark">#07090C</color>
+  <color name="garage_icon_bg">#0E161E</color>
+</resources>

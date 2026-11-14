@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <Import Project="..\MechGarage.Version.props" />
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-android</TargetFramework>
+    <!-- Android 8.0 and newer, like the SauceStore app. -->
+    <SupportedOSPlatformVersion>26</SupportedOSPlatformVersion>
+    <OutputType>Exe</OutputType>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>MechGarage.Android</RootNamespace>
+    <AssemblyName>MechGarage</AssemblyName>
+    <ApplicationId>com.saulls.mechgarage</ApplicationId>
+    <ApplicationTitle>Mech Garage</ApplicationTitle>
+    <!-- 0.1.0 becomes version code 100 (major × 10000 + minor × 100 + patch); Android only installs higher codes as updates. -->
+    <ApplicationDisplayVersion>$(Version)</ApplicationDisplayVersion>
+    <ApplicationVersion>$([MSBuild]::Add($([MSBuild]::Add($([MSBuild]::Multiply($([System.Version]::Parse($(Version)).Major), 10000)), $([MSBuild]::Multiply($([System.Version]::Parse($(Version)).Minor), 100)))), $([System.Version]::Parse($(Version)).Build)))</ApplicationVersion>
+    <RuntimeIdentifiers>android-arm64;android-arm;android-x64</RuntimeIdentifiers>
+    <AndroidPackageFormat>apk</AndroidPackageFormat>
+    <!-- Where SauceStore's tools/Install-AndroidTools.ps1 puts the SDK, unless you have your own. -->
+    <AndroidSdkDirectory Condition="'$(AndroidSdkDirectory)' == '' and Exists('$(LOCALAPPDATA)\Android\Sdk')">$(LOCALAPPDATA)\Android\Sdk</AndroidSdkDirectory>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Serves the game from the app's own files at https://appassets.androidplatform.net/ (needed for its modules). -->
+    <PackageReference Include="Xamarin.AndroidX.WebKit" Version="1.16.0" />
+  </ItemGroup>
+
+  <!-- The game itself: the web folder, packed into the app as assets/web. -->
+  <ItemGroup>
+    <AndroidAsset Include="..\..\web\**\*" Link="Assets\web\%(RecursiveDir)%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <!-- Releases are signed afterwards with SauceStore's tools/Sign-Apk.ps1 (the same key as every SauceStore app). -->
+    <AndroidKeyStore>false</AndroidKeyStore>
+    <PublishTrimmed>true</PublishTrimmed>
+  </PropertyGroup>
+
+</Project>

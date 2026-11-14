@@ -1,0 +1,66 @@
+# Builds Mech Garage for Windows and Android and publishes the GitHub release that SauceStore lists.
+#
+# Start it on GitHub: Actions > Release > Run workflow, and type the version (like v0.1.0). ./tools/Release-Game.ps1
+# does the same from a PC. Before that: bump <Version> in src/MechGarage.Version.props to match, write what changed in
+# release-notes/<version>.md (one change per line), commit and push. The Android signing key is GitHub's own (see
+# android.yml). The same setup as SauceStore itself.
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to publish, like v0.1.0 (must match src/MechGarage.Version.props)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Version matches, has release notes and isn't released yet
+        env:
+          VERSION: ${{ inputs.version }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -e
+          PROPS="v$(sed -n 's:.*<Version>\(.*\)</Version>.*:\1:p' src/MechGarage.Version.props | head -1)"
+          if [ "$VERSION" != "$PROPS" ]; then echo "::error::You asked for $VERSION but src/MechGarage.Version.props says $PROPS. Bump it first."; exit 1; fi
+          if [ ! -f "release-notes/$VERSION.md" ]; then echo "::error::Write release-notes/$VERSION.md first."; exit 1; fi
+          if gh release view "$VERSION" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then echo "::error::$VERSION is already released."; exit 1; fi
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - name: Robot language tests
+        run: node --test tests/brain.test.mjs tests/plans.test.mjs
+
+  windows:
+    needs: check
+    uses: ./.github/workflows/windows.yml
+    secrets: inherit
+
+  android:
+    needs: check
+    uses: ./.github/workflows/android.yml
+    secrets: inherit
+
+  publish:
+    needs: [windows, android]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          ls -la dist
+          gh release create "$VERSION" dist/MechGarage-windows.zip dist/MechGarage-android.apk \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "Mech Garage ${VERSION#v}" \
+            --notes-file "release-notes/$VERSION.md"

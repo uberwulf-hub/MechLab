@@ -1,0 +1,64 @@
+# Builds the signed MechGarage-android.apk. Called by every Release, or run on its own from Actions > Android > Run
+# workflow to get a signed test build.
+#
+# Signing: Android only installs an update over an older copy if both were signed with the same key. The key lives
+# only in these repository secrets (never in the repo, a cache or a download), which pull requests from other people
+# can't read. Make it once on your PC with tools/New-AndroidKey.ps1, which prints the three values to paste in:
+#   ANDROID_KEYSTORE_BASE64   the .keystore file, base64-encoded
+#   ANDROID_KEYSTORE_ALIAS    the key's alias
+#   ANDROID_KEYSTORE_PASSWORD its password
+name: Android
+
+on:
+  workflow_dispatch:
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with: { dotnet-version: '10.0.x' }
+      - uses: actions/setup-java@v4
+        with: { distribution: temurin, java-version: '21' }
+      - run: dotnet workload install android
+
+      - name: Set up signing
+        env:
+          KEY_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEYSTORE_ALIAS }}
+          KEY_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          set -e
+          if [ -z "$KEY_B64" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASS" ]; then
+            echo "::error::No Android signing key. Run tools/New-AndroidKey.ps1 on your PC once and add the three ANDROID_KEYSTORE_* repository secrets it prints (Settings > Secrets and variables > Actions)."
+            exit 1
+          fi
+          mkdir -p "$RUNNER_TEMP/key"
+          echo "$KEY_B64" | base64 -d > "$RUNNER_TEMP/key/release.keystore"
+          { echo "MG_KEYSTORE=$RUNNER_TEMP/key/release.keystore"; echo "MG_KEY_ALIAS=$KEY_ALIAS"; echo "MG_KEY_PASS=$KEY_PASS"; } >> "$GITHUB_ENV"
+
+      - name: Build the release .apk
+        run: |
+          dotnet publish src/MechGarage.Android -c Release -f net10.0-android \
+            -p:AndroidSdkDirectory="$ANDROID_HOME" -p:JavaSdkDirectory="$JAVA_HOME" -o out/android
+
+      - name: Sign it
+        run: |
+          set -e
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          APK=$(ls out/android/*-Signed.apk | head -1)
+          "$BT/apksigner" sign --ks "$MG_KEYSTORE" --ks-key-alias "$MG_KEY_ALIAS" \
+            --ks-pass env:MG_KEY_PASS --key-pass env:MG_KEY_PASS --out MechGarage-android.apk "$APK"
+          "$BT/apksigner" verify --print-certs MechGarage-android.apk | head -5
+          ls -la MechGarage-android.apk
+          rm -f "$MG_KEYSTORE"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-apk
+          path: MechGarage-android.apk

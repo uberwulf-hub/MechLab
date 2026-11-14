@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+  <!-- To hear the pilot talk to the robot helper. Android asks the first time the microphone is used. -->
+  <uses-permission android:name="android.permission.RECORD_AUDIO" />
+  <uses-feature android:name="android.hardware.microphone" android:required="false" />
+  <uses-feature android:glEsVersion="0x00030000" android:required="true" />
+  <!-- Android 11+ only lets an app see the speech services it declares it uses. -->
+  <queries>
+    <intent><action android:name="android.speech.RecognitionService" /></intent>
+    <intent><action android:name="android.intent.action.TTS_SERVICE" /></intent>
+  </queries>
+  <application android:label="Mech Garage" android:icon="@mipmap/ic_launcher" android:roundIcon="@mipmap/ic_launcher"
+               android:theme="@style/GarageTheme" android:hardwareAccelerated="true" android:allowBackup="true" />
+</manifest>

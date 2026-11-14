@@ -1,0 +1,50 @@
+# Builds Mech Garage for Windows and Android on every push, runs the robot-language tests, and keeps the builds as
+# downloadable artifacts. These builds are UNSIGNED and only for checking: real releases are signed on your PC with
+# tools/Release-Game.ps1, so Android updates always carry the same key.
+name: Build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Robot language tests
+        run: node --test tests/brain.test.mjs tests/plans.test.mjs
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+      - uses: actions/setup-java@v4
+        with:
+          distribution: microsoft
+          java-version: 21
+
+      - name: Windows build
+        run: dotnet publish src/MechGarage.Windows -c Release -r win-x64 --self-contained -p:DebugType=none -o artifacts/windows
+
+      - name: Android workload
+        run: dotnet workload install android
+      - name: Android build (unsigned check)
+        run: |
+          dotnet build src/MechGarage.Android -t:InstallAndroidDependencies -f net10.0-android \
+            "-p:AndroidSdkDirectory=$ANDROID_SDK_ROOT" "-p:JavaSdkDirectory=$JAVA_HOME" -p:AcceptAndroidSDKLicenses=True
+          dotnet publish src/MechGarage.Android -c Release -f net10.0-android \
+            "-p:AndroidSdkDirectory=$ANDROID_SDK_ROOT" "-p:JavaSdkDirectory=$JAVA_HOME" -o artifacts/android
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MechGarage-windows-unsigned
+          path: artifacts/windows
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MechGarage-android-unsigned
+          path: artifacts/android/*-Signed.apk

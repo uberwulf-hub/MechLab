@@ -1,0 +1,42 @@
+{
+  "name": "Mech Garage",
+  "category": "Game",
+  "description": "Design and build your own mech in a high-tech garage. Name your robot helper, then talk to it: it fetches parts, holds them while you line them up, and welds them on.",
+  "icon": "store/icon.png",
+  "assets": {
+    "windows": "MechGarage-windows.zip",
+    "android": "MechGarage-android.apk"
+  },
+  "requirements": [
+    "Windows 10 or 11 (64-bit) with the Microsoft Edge WebView2 Runtime (built into Windows 11)",
+    "Android 8.0 or newer, with OpenGL ES 3",
+    "A microphone to talk to the robot helper (you can type instead)"
+  ],
+  "rightsConfirmed": true,
+  "credits": [
+    {
+      "asset": "three.js 3D library (web/vendor/three)",
+      "author": "three.js authors",
+      "license": "MIT",
+      "source": "https://github.com/mrdoob/three.js"
+    },
+    {
+      "asset": "Microsoft Edge WebView2 SDK (Windows app)",
+      "author": "Microsoft",
+      "license": "BSD-3-Clause",
+      "source": "https://www.nuget.org/packages/Microsoft.Web.WebView2"
+    },
+    {
+      "asset": ".NET runtime, System.Speech and .NET for Android",
+      "author": "Microsoft and the .NET Foundation",
+      "license": "MIT",
+      "source": "https://github.com/dotnet/runtime"
+    },
+    {
+      "asset": "AndroidX WebKit bindings (Android app)",
+      "author": "Google and Microsoft",
+      "license": "Apache-2.0 / MIT",
+      "source": "https://github.com/dotnet/android-libraries"
+    }
+  ]
+}

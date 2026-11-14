@@ -1,0 +1,241 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <title>Mech Garage</title>
+  <link rel="stylesheet" href="styles.css">
+  <script type="importmap">
+    { "imports": { "three": "./vendor/three/three.module.js", "three/addons/": "./vendor/three/addons/" } }
+  </script>
+</head>
+<body>
+  <canvas id="view"></canvas>
+
+  <!-- loading -->
+  <div id="loading" class="overlay"><div class="boot"><div class="boot-title">MECH GARAGE</div><div class="boot-bar"><i></i></div><div class="boot-text">Powering up the garage…</div></div></div>
+
+  <!-- first launch: name the robot helper -->
+  <div id="setup" class="overlay hidden">
+    <form class="card setup-card" id="setup-form" autocomplete="off">
+      <div class="kicker">Bay 01 · New pilot</div>
+      <h1>Welcome to your garage</h1>
+      <p>This is where you design and build your own mech. Your robot helper is switched on and waiting for a name. Once it has one, you can talk to it by name and it will help you build.</p>
+      <label>Your robot helper's name<input id="setup-robot" maxlength="20" placeholder="e.g. Rivet, Bolt, Sparky" required></label>
+      <label>What should it call you?<input id="setup-pilot" maxlength="20" placeholder="Your name"></label>
+      <label>Your mech's name <span class="opt">(you can change it later)</span><input id="setup-mech" maxlength="24" placeholder="e.g. Ironclad"></label>
+      <button class="btn primary big" type="submit">Power up the robot →</button>
+    </form>
+  </div>
+
+  <!-- top bar -->
+  <header id="topbar">
+    <div class="brand">
+      <div class="kicker">Hangar 01 · Pilot workshop</div>
+      <div class="title"><span id="mech-name">Unnamed mech</span><button class="icon-btn" id="rename-mech" title="Rename the mech">✎</button></div>
+    </div>
+    <nav class="tools">
+      <button class="tool" id="btn-blueprint" title="Blueprint and real build plan"><b>📐</b><span>Blueprint</span></button>
+      <button class="tool launch" id="btn-launch" title="Launch to the test planet"><b>🚀</b><span>Launch</span></button>
+      <button class="tool" id="btn-paint" title="Paint"><b>🎨</b><span>Paint</span></button>
+      <button class="tool" id="btn-explode" title="Exploded view"><b>⧉</b><span>Explode</span></button>
+      <button class="tool" id="btn-spin" title="Spin the turntable"><b>⟳</b><span>Spin</span></button>
+      <button class="tool" id="btn-walk" title="Test walk"><b>▶</b><span>Test</span></button>
+      <button class="tool" id="btn-build" title="Build the rest for me"><b>⚙</b><span>Auto-build</span></button>
+      <button class="tool" id="btn-settings" title="Settings"><b>☰</b><span>Settings</span></button>
+      <button class="tool exit" id="btn-menu" title="Pause and exit (Esc)"><b>⏻</b><span>Exit</span></button>
+    </nav>
+  </header>
+
+
+
+
+  <!-- left column: parts and the readout -->
+  <div id="col-left" class="col">
+  <!-- left: parts -->
+  <aside id="parts" class="panel">
+    <div class="panel-head"><span>Parts</span><button class="icon-btn mobile-only" data-close="parts">✕</button></div>
+    <div id="slot-tabs" class="tabs"></div>
+    <div id="part-list" class="part-list"></div>
+    <div class="hint">Tap a part and your helper brings it. Or drag it onto the mech.</div>
+  </aside>
+  <!-- bottom-left readout -->
+  <section id="readout" class="panel small">
+    <div class="panel-head"><span>System readout</span><span class="sub" id="ready-text">—</span></div>
+    <div class="bars">
+      <div class="bar"><label>Armor</label><b id="v-armor">0</b><div><i id="b-armor"></i></div></div>
+      <div class="bar"><label>Power</label><b id="v-power">0</b><div><i id="b-power"></i></div></div>
+      <div class="bar"><label>Weight</label><b id="v-weight">0 t</b><div><i id="b-weight"></i></div></div>
+      <div class="bar"><label>Speed</label><b id="v-speed">0</b><div><i id="b-speed"></i></div></div>
+    </div>
+    <div id="checklist" class="checklist"></div>
+  </section>
+  </div>
+
+  <!-- right column: the robot helper, the microphone, and the paint/settings drawers over it -->
+  <div id="col-right" class="col">
+  <!-- right: the robot helper -->
+  <aside id="chat" class="panel">
+    <div class="panel-head">
+      <span class="who"><i id="robot-led" class="led"></i><span id="robot-name">Robot</span></span>
+      <span class="sub" id="robot-state">Ready</span>
+      <button class="icon-btn mobile-only" data-close="chat">✕</button>
+    </div>
+    <div id="log" class="log"></div>
+    <div class="chips" id="chips"></div>
+    <form id="say" class="say" autocomplete="off">
+      <input id="say-text" placeholder="Talk to your helper…" enterkeyhint="send">
+      <button type="submit" class="btn">Send</button>
+    </form>
+  </aside>
+  <!-- the big microphone button -->
+  <button id="mic" title="Hold to talk (or tap)"><span class="mic-ring"></span><svg viewBox="0 0 24 24"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-2.08A7 7 0 0 0 19 12h-2z"/></svg></button>
+  <div id="heard" class="heard hidden"></div>
+  <!-- paint drawer -->
+  <div id="paint" class="drawer hidden">
+    <div class="panel-head"><span>Paint shop</span><button class="icon-btn" data-close="paint">✕</button></div>
+    <div class="paint-row"><label>Main</label><div class="swatches" data-target="primary"></div></div>
+    <div class="paint-row"><label>Trim</label><div class="swatches" data-target="accent"></div></div>
+    <div class="paint-row"><label>Lights</label><div class="swatches" data-target="glow"></div></div>
+  </div>
+  <!-- customise one part -->
+  <div id="custom" class="drawer hidden">
+    <div class="panel-head"><span id="cu-title">Customize</span><button class="icon-btn" data-close="custom">✕</button></div>
+    <div class="cu-part"><b id="cu-part"></b><span class="sub" id="cu-slot"></span></div>
+    <label class="row-l">Nickname<input id="cu-nick" maxlength="20" placeholder="e.g. Big Bertha"></label>
+    <label class="row-l">Label on the containers<input id="cu-label" maxlength="8" placeholder="e.g. TITAN-1"></label>
+    <div class="paint-row"><label>Main colour</label><div class="swatches" id="cu-primary"></div></div>
+    <div class="paint-row"><label>Trim colour</label><div class="swatches" id="cu-accent"></div></div>
+    <label class="row-l" id="cu-size-row">Size <span class="sub" id="cu-size-v"></span><input type="range" id="cu-size" min="0.8" max="1.3" step="0.05"></label>
+    <label class="row-l" id="cu-length-row">Length <span class="sub" id="cu-length-v"></span><input type="range" id="cu-length" min="0.8" max="1.4" step="0.05"></label>
+    <p class="sub small-print">Bigger parts add armour, and weight too. Try saying "make the left arm bigger" or "paint the legs red".</p>
+    <div class="row"><button class="btn ghost" id="cu-reset">Reset this part</button><button class="btn primary" id="cu-done">Done</button></div>
+  </div>
+
+  <!-- settings -->
+  <div id="settings" class="drawer hidden">
+    <div class="panel-head"><span>Settings</span><button class="icon-btn" data-close="settings">✕</button></div>
+    <label class="row-l">Robot helper's name<input id="set-robot" maxlength="20"></label>
+    <label class="row-l">Your name<input id="set-pilot" maxlength="20"></label>
+    <label class="row-l check"><input type="checkbox" id="set-voice" checked> Robot talks out loud</label>
+    <label class="row-l">Robot's voice<span class="voice-row"><select id="set-voice-pick"></select><button class="btn" id="set-voice-test" type="button">Test</button></span></label>
+    <label class="row-l check"><input type="checkbox" id="set-music" checked> Boombox plays in the garage</label>
+    <label class="row-l">Music volume<input type="range" id="set-music-volume" min="0" max="1" step="0.05" value="0.5"></label>
+    <label class="row-l check"><input type="checkbox" id="set-wake"> Only listen when I say its name</label>
+    <label class="row-l">Sound effects<input type="range" id="set-volume" min="0" max="1" step="0.05" value="0.7"></label>
+    <label class="row-l">Graphics<select id="set-quality"><option value="high">High (PC)</option><option value="low">Fast (phones and tablets)</option></select></label>
+    <div class="row"><button class="btn" id="set-save">Save</button><button class="btn ghost" id="set-reset">Start a new mech</button></div>
+    <p class="sub small-print">Mech Garage keeps your mech on this device. Nothing you say leaves it: listening and speaking use the device's own speech engine.</p>
+  </div>
+
+  </div>
+
+  <!-- held part controls -->
+  <div id="holdbar" class="holdbar hidden">
+    <div class="hold-title"><span class="kicker">Holding</span><b id="hold-name">—</b><span id="hold-slot" class="sub"></span></div>
+    <div class="hold-meter"><i id="hold-fill"></i><span class="hold-mark"></span></div>
+    <div class="hold-btns">
+      <button class="btn" data-cmd="move it out">⟵ Out</button>
+      <button class="btn" data-cmd="move it in">In ⟶</button>
+      <button class="btn primary" data-cmd="lock it">Lock on</button>
+      <button class="btn" data-cmd="another one">Another</button>
+      <button class="btn ghost" data-cmd="put it back">Put back</button>
+    </div>
+  </div>
+
+
+  <!-- tapping a fitted part -->
+  <div id="partmenu" class="partmenu hidden">
+    <b id="pm-name"></b><span id="pm-slot" class="sub"></span>
+    <div class="row"><button class="btn primary" id="pm-custom">Customize</button><button class="btn" id="pm-swap">Swap</button><button class="btn ghost" id="pm-remove">Remove</button></div>
+  </div>
+
+
+  <!-- mobile toggles -->
+  <div id="mobile-tabs" class="mobile-only">
+    <button class="btn" data-open="parts">Parts</button>
+    <button class="btn" data-open="chat">Helper</button>
+  </div>
+
+  <!-- blueprint mode -->
+  <svg id="bp-dims" class="bp-dims"></svg>
+  <aside id="blueprint" class="bp hidden">
+    <div class="panel-head"><span>Blueprint</span><span class="sub">Real build plan</span><button class="icon-btn" id="bp-close" title="Back to the garage">✕</button></div>
+    <div class="bp-views">
+      <button class="tab" data-view="front">Front</button><button class="tab" data-view="side">Side</button>
+      <button class="tab" data-view="top">Top</button><button class="tab" data-view="3d">3D</button>
+      <button class="tab" id="bp-explode">Explode</button>
+    </div>
+    <div class="bp-body"></div>
+    <div class="bp-foot"><button class="btn primary" id="bp-print">🖨 Print build plan</button><button class="btn ghost" id="bp-done">Back to garage</button></div>
+  </aside>
+  <div id="print-sheet" class="print-sheet"></div>
+
+  <!-- the test planet -->
+  <div id="sim" class="sim hidden">
+    <div id="sim-flash" class="sim-flash"></div>
+    <div id="sim-look" class="sim-look"></div>
+    <div class="sim-card">
+      <div class="kicker">Mission</div>
+      <div id="sim-mission" class="sim-mission"></div>
+      <div id="sim-progress" class="sim-progress"></div>
+      <div id="sim-score" class="sub"></div>
+    </div>
+    <button id="sim-exit" class="btn sim-exit">⟵ Garage</button>
+    <canvas id="sim-radar" class="sim-radar" width="160" height="160"></canvas>
+    <div class="sim-bars">
+      <div class="sim-bar"><label>Armour</label><div><i id="sim-hp"></i></div><b id="sim-hp-v"></b></div>
+      <div class="sim-bar"><label>Energy</label><div><i id="sim-en" class="en"></i></div><b id="sim-en-v"></b></div>
+      <div class="sim-bar" id="sim-rockets-wrap"><label>Rockets</label><span id="sim-rockets" class="rk"></span></div>
+      <div id="sim-speed" class="sub"></div>
+    </div>
+    <div class="sim-cross" id="sim-cross">+</div>
+    <div class="sim-lock hidden" id="sim-lock"></div>
+    <div id="sim-radio" class="sim-radio hidden"></div>
+    <div id="sim-toast" class="sim-toast hidden"></div>
+    <div id="sim-big" class="sim-big hidden"></div>
+    <div id="sim-help" class="sim-help hidden"></div>
+    <div id="sim-touch" class="sim-touch hidden">
+      <div id="sim-stick" class="sim-stick"><div id="sim-knob" class="sim-knob"></div></div>
+      <div class="sim-btns">
+        <button id="sim-b-rocket" class="sb small">🚀</button>
+        <button id="sim-b-light" class="sb small">💡</button>
+        <button id="sim-b-run" class="sb">RUN</button>
+        <button id="sim-b-jump" class="sb">JUMP</button>
+        <button id="sim-b-fire" class="sb fire">FIRE</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- the boombox's controls -->
+  <div id="boombox" class="partmenu boombox hidden">
+    <div class="bb-head"><b>Boombox</b><button class="icon-btn" id="bb-close">✕</button></div>
+    <div class="bb-track" id="bb-track">—</div>
+    <div class="bb-btns">
+      <button class="btn" id="bb-prev" title="Previous song">⏮</button>
+      <button class="btn primary" id="bb-play" title="Play or pause">▶</button>
+      <button class="btn" id="bb-next" title="Next song">⏭</button>
+    </div>
+    <label class="bb-vol">🔈<input type="range" id="bb-volume" min="0" max="1" step="0.05"></label>
+    <div class="sub">Or ask your helper: "play some jazz", "next song", "turn it up".</div>
+  </div>
+
+  <!-- pause menu: resume, exit -->
+  <div id="menu" class="overlay hidden">
+    <div class="card menu-card">
+      <div class="kicker">Paused</div>
+      <h1>Mech Garage</h1>
+      <button class="btn primary big" id="menu-resume">Back to the garage</button>
+      <button class="btn big" id="menu-window">Window mode</button>
+      <button class="btn big" id="menu-minimize">Minimize</button>
+      <button class="btn big danger" id="menu-quit">Exit game</button>
+      <p class="sub">Your mech is saved. Esc opens and closes this menu.</p>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+  <div id="drag-ghost" class="drag-ghost hidden"></div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
