@@ -376,7 +376,7 @@ export class Planet {
     s.add(new THREE.HemisphereLight(0x9a7cff, 0x1a3a2a, 0.75));
     const sun = new THREE.DirectionalLight(0xbfe6ff, 1.3);
     sun.position.set(-60, 90, 40);
-    sun.castShadow = true;
+    sun.castShadow = !this.low;
     const sm = this.low ? 1024 : 2048;
     sun.shadow.mapSize.set(sm, sm);
     const c = sun.shadow.camera;

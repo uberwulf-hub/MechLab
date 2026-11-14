@@ -74,7 +74,7 @@ export class Boombox {
     for (const c of this.cones) c.scale.set(1 + level * 0.18, 1 + level * 0.18, 1 + level * 0.5);
     this.light.intensity = playing ? 0.4 + level * 1.2 : 0;
     this.scroll += dt * 40;
-    if (t - this.lastDraw < 0.08) return;
+    if (t - this.lastDraw < (this.lowPower ? 0.25 : 0.08)) return;
     this.lastDraw = t;
     const { ctx: c, canvas } = this.screen;
     c.fillStyle = '#0c1a10';

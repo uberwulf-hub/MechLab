@@ -69,10 +69,6 @@ export class Jazz {
     this.fade = ctx.createGain();
     this.out = ctx.createGain();
     this.out.gain.value = this.volume;
-    const verb = ctx.createConvolver();
-    verb.buffer = this.impulse(2.4);
-    const wet = ctx.createGain();
-    wet.gain.value = 0.22;
     const low = ctx.createBiquadFilter();
     low.type = 'lowshelf'; low.frequency.value = 140; low.gain.value = 3;
     const high = ctx.createBiquadFilter();
@@ -80,7 +76,14 @@ export class Jazz {
     const comp = ctx.createDynamicsCompressor();
     comp.threshold.value = -18; comp.ratio.value = 3;
     this.bus.connect(low);
-    this.bus.connect(verb).connect(wet).connect(low);
+    if (!this.lowPower) {
+      // the room's echo: lovely, but heavy work for a tablet, so only on stronger devices
+      const verb = ctx.createConvolver();
+      verb.buffer = this.impulse(2.4);
+      const wet = ctx.createGain();
+      wet.gain.value = 0.22;
+      this.bus.connect(verb).connect(wet).connect(low);
+    }
     low.connect(high).connect(comp).connect(this.fade).connect(this.out).connect(ctx.destination);
     this.analyser = ctx.createAnalyser();
     this.analyser.fftSize = 512;
@@ -116,7 +119,8 @@ export class Jazz {
     this.fade.gain.setValueAtTime(0.0001, this.ctx.currentTime);
     this.fade.gain.exponentialRampToValueAtTime(1, this.ctx.currentTime + 0.8);
     this.startTrack(this.index);
-    this.timer = setInterval(() => this.schedule(), 40);
+    // slower devices plan further ahead, so a busy moment on screen can't make the band stumble
+    this.timer = setInterval(() => this.schedule(), this.lowPower ? 100 : 40);
     this.onChange?.();
     return true;
   }
@@ -181,7 +185,7 @@ export class Jazz {
   }
 
   schedule() {
-    const ahead = this.ctx.currentTime + 0.25;
+    const ahead = this.ctx.currentTime + (this.lowPower ? 0.8 : 0.25);
     while (this.nextTime < ahead) {
       this.playStep(this.step, this.nextTime);
       this.step++;
@@ -397,7 +401,7 @@ export class Jazz {
     g.gain.exponentialRampToValueAtTime(0.0001, t + dur + 0.12);
     this.pan(g, 0.12).connect(this.bus);
     // breath
-    this.noiseHit(t, 'bandpass', 1800, 1.5, 0.03, 0.012 * vel, dur, 0.12);
+    if (!this.lowPower) this.noiseHit(t, 'bandpass', 1800, 1.5, 0.03, 0.012 * vel, dur, 0.12);
     for (const o of [a, b, vib]) { o.start(t); o.stop(t + dur + 0.2); }
   }
 
@@ -409,7 +413,7 @@ export class Jazz {
     tg.gain.value = 0.3;
     amp.gain.value = 0.7;
     trem.connect(tg).connect(amp.gain);
-    for (const [ratio, level] of [[1, 1], [4, 0.18], [10, 0.05]]) {
+    for (const [ratio, level] of this.lowPower ? [[1, 1], [4, 0.18]] : [[1, 1], [4, 0.18], [10, 0.05]]) {
       const o = c.createOscillator(), og = c.createGain();
       o.frequency.value = f * ratio;
       this.env(og, t, 0.003, level, ratio === 1 ? dur + 1.6 : 0.4);

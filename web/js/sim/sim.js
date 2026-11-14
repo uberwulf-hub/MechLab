@@ -64,12 +64,13 @@ const MISSIONS = [
 ];
 
 export class Sim {
-  constructor({ renderer, state, layout, custom = {}, paint, talk, onExit, quality }) {
+  constructor({ renderer, state, layout, custom = {}, paint, talk, onExit, perf }) {
     this.renderer = renderer;
     this.state = state;
     this.talk = talk;
     this.onExit = onExit;
-    this.quality = quality;
+    this.perf = perf;
+    const quality = perf.level;
     this.ab = abilities(layout, custom);
     this.scene = new THREE.Scene();
     this.camera = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.2, 1200);
@@ -669,7 +670,8 @@ export class Sim {
   }
 
   render() {
-    this.composer.render();
+    if (this.perf.opts.bloom) this.composer.render();
+    else this.renderer.render(this.scene, this.camera);
   }
 
   resize() {

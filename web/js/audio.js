@@ -3,12 +3,15 @@ let ctx = null, master = null, hum = null;
 /** The shared audio context (null until the first tap or click). */
 export const audioContext = () => ctx;
 let volume = 0.7;
+let lowPower = false;
+/** On tablets and phones the sound card gets a bigger buffer, which stops crackles when the device is busy. */
+export function setLowPower(on) { lowPower = on; }
 
 export function unlock() {
   if (ctx) { if (ctx.state === 'suspended') ctx.resume(); return; }
   const AC = window.AudioContext || window.webkitAudioContext;
   if (!AC) return;
-  ctx = new AC();
+  try { ctx = new AC({ latencyHint: lowPower ? 'playback' : 'interactive' }); } catch { ctx = new AC(); }
   master = ctx.createGain();
   master.gain.value = volume;
   master.connect(ctx.destination);

@@ -18,6 +18,7 @@ import { Blueprint } from './blueprint.js';
 import { Sim } from './sim/sim.js';
 import { Jazz, TRACKS } from './music.js';
 import { Boombox } from './boombox.js';
+import { Perf } from './perf.js';
 
 // ======================================================================
 // saved state
@@ -32,7 +33,7 @@ function load() {
 }
 const state = Object.assign({
   robotName: '', pilotName: '', mechName: '', paint: { ...DEFAULT_PAINT }, layout: {},
-  voiceOn: true, wakeWord: false, volume: 0.7, voiceId: '', musicOn: true, musicVolume: 0.45, track: 0, quality: matchMedia('(pointer: coarse)').matches ? 'low' : 'high',
+  voiceOn: true, wakeWord: false, volume: 0.7, voiceId: '', musicOn: true, musicVolume: 0.45, track: 0, graphics: 'auto',
 }, load() ?? {});
 function save() {
   state.layout = mech.layout;
@@ -45,10 +46,14 @@ function save() {
 // renderer, scene, camera
 // ======================================================================
 const canvas = document.getElementById('view');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: state.quality === 'high', powerPreference: 'high-performance' });
-renderer.setPixelRatio(Math.min(devicePixelRatio, state.quality === 'high' ? 2 : 1.25));
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+// graphics level: PCs start on high, tablets and phones on low; on Auto it steps down by itself if frames come slowly
+delete state.quality;  // the old two-way setting; the new one starts on Auto
+const perf = new Perf(state.graphics ?? 'auto');
+sfx.setLowPower(perf.lowPower);
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: perf.opts.antialias, powerPreference: 'high-performance' });
+renderer.setPixelRatio(perf.ratio);
+renderer.shadowMap.enabled = perf.opts.shadows !== 'off';
+renderer.shadowMap.type = perf.opts.shadows === 'soft' ? THREE.PCFSoftShadowMap : THREE.PCFShadowMap;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.92;
 renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -101,7 +106,7 @@ resize();
 // ======================================================================
 // the world
 // ======================================================================
-const garage = buildGarage(scene, state.quality);
+const garage = buildGarage(scene, perf.level);
 const mech = new Mech(scene, state.paint);
 mech.onHeightChange = (y) => garage.rebuildChains(y + hullTop());
 const robot = new Robot(scene);
@@ -110,6 +115,21 @@ robot.home(camera.position);
 // the boombox on the desk, and the band inside it
 const boombox = new Boombox(garage.desk, new THREE.Vector3(-1.05, 0.955, -2.62), 0.3);
 const music = new Jazz(() => sfx.audioContext());
+music.lowPower = perf.lowPower;
+
+/** Applies the current graphics level (at start and whenever the adjuster changes it). */
+function applyPerf() {
+  const o = perf.opts;
+  renderer.setPixelRatio(perf.ratio);
+  resize();
+  garage.setLevel(o);
+  boombox.light.visible = o.lights;
+  boombox.lowPower = perf.lowPower;
+  if (o.shadows === 'off') for (const l of [garage.lights.key, sim?.planet.sun]) if (l) l.castShadow = false;
+  music.lowPower = perf.lowPower;
+}
+perf.onChange(applyPerf);
+applyPerf();
 music.index = Math.min(state.track ?? 0, TRACKS.length - 1);
 music.volume = state.musicVolume;
 music.onChange = () => { state.track = music.index; renderBoombox(); };
@@ -439,7 +459,7 @@ async function launch() {
   musicBeforeSim = music.playing;
   music.pause();
   sim = new Sim({
-    renderer, state, layout: mech.layout, custom: mech.custom, paint: { ...mech.paint }, quality: state.quality,
+    renderer, state, layout: mech.layout, custom: mech.custom, paint: { ...mech.paint }, perf,
     talk: (t) => talk(t),
     onExit: (score) => {
       sim = null;
@@ -725,7 +745,7 @@ $('btn-settings').onclick = () => {
   $('set-voice').checked = state.voiceOn;
   $('set-wake').checked = state.wakeWord;
   $('set-volume').value = state.volume;
-  $('set-quality').value = state.quality;
+  $('set-quality').value = state.graphics ?? 'auto';
   $('set-music').checked = state.musicOn;
   $('set-music-volume').value = music.volume;
   fillVoices();
@@ -765,8 +785,8 @@ $('set-save').onclick = () => {
   state.wakeWord = $('set-wake').checked;
   state.volume = +$('set-volume').value;
   const q = $('set-quality').value;
-  const reload = q !== state.quality;
-  state.quality = q;
+  const reload = q !== (state.graphics ?? 'auto');
+  state.graphics = q;
   sfx.setVolume(state.volume);
   voice.setMuted(!state.voiceOn);
   state.voiceId = $('set-voice-pick').value;
@@ -1284,6 +1304,7 @@ function drawScreens(t) {
 let last = performance.now();
 let stepPhase = 0;
 function frame(now) {
+  perf.tick((now - last) / 1000);
   const dt = Math.min(0.05, (now - last) / 1000);
   last = now;
   const t = (now - t0) / 1000;
@@ -1337,10 +1358,10 @@ function frame(now) {
   controls.update();
 
   screenTimer -= dt;
-  if (screenTimer <= 0) { screenTimer = 0.1; drawScreens(t); }
+  if (screenTimer <= 0) { screenTimer = 1 / perf.opts.screensHz; drawScreens(t); }
   if (mech.held) renderHoldbar();
 
-  composer.render();
+  if (perf.opts.bloom) composer.render(); else renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
 
@@ -1385,6 +1406,6 @@ $('setup-form').onsubmit = (e) => {
 };
 
 // debugging and tests can reach the game from the console
-window.garage = { state, mech, robot, handle, understand, blueprint, music, boombox, openCustom, get sim() { return sim; } };
+window.garage = { state, mech, robot, handle, understand, blueprint, music, boombox, openCustom, perf, get sim() { return sim; } };
 
 start();

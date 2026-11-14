@@ -330,12 +330,13 @@ export function buildGarage(scene, quality) {
   }
 
   // ---------- lights ----------
-  scene.add(new THREE.HemisphereLight(0xb8c8d8, 0x2a2622, 0.22));
+  const hemi = new THREE.HemisphereLight(0xb8c8d8, 0x2a2622, 0.22);
+  scene.add(hemi);
   const key = new THREE.SpotLight(0xfff4e6, 210, 30, 0.62, 0.55, 1.6);
   key.position.set(1.5, h - 0.3, 4.5);
   key.target.position.set(0, 2.2, 0);
   key.castShadow = true;
-  const sm = quality === 'low' ? 1024 : 2048;
+  const sm = quality === 'high' ? 2048 : 1024;
   key.shadow.mapSize.set(sm, sm);
   key.shadow.bias = -0.0002;
   key.shadow.normalBias = 0.02;
@@ -378,5 +379,12 @@ export function buildGarage(scene, quality) {
     flashLift: () => { liftFlash = 1; },
     rebuildChains,
     lights: { key, rim, backWarm, fill },
+    /** Lighter lighting for slower devices: only the main lights, a brighter ambient to make up for the rest. */
+    setLevel(o) {
+      for (const l of [rim, backWarm, deskLight, holoLight]) l.visible = o.lights;
+      hemi.intensity = o.lights ? 0.22 : 0.42;
+      fill.intensity = o.lights ? 22 : 30;
+      if (o.shadows === 'off') key.castShadow = false;
+    },
   };
 }
