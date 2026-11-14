@@ -1,12 +1,12 @@
 # Builds the signed MechGarage-android.apk. Called by every Release, or run on its own from Actions > Android > Run
 # workflow to get a signed test build.
 #
-# Signing: Android only installs an update over an older copy if both were signed with the same key. The key lives
-# only in these repository secrets (never in the repo, a cache or a download), which pull requests from other people
-# can't read. Make it once on your PC with tools/New-AndroidKey.ps1, which prints the three values to paste in:
-#   ANDROID_KEYSTORE_BASE64   the .keystore file, base64-encoded
-#   ANDROID_KEYSTORE_ALIAS    the key's alias
-#   ANDROID_KEYSTORE_PASSWORD its password
+# Signing: Android only installs an update over an older copy if both were signed with the same key.
+# GitHub makes the key on the first release and keeps it in this repository's Actions cache (keep-android-key.yml
+# touches it every few days so GitHub never clears it). That's safe on this public repo only while
+# Settings > Actions > General > "Require approval for all external contributors" is on, so strangers' pull
+# requests can't run builds that read the cache. If these repository secrets exist, they're used instead:
+#   ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_ALIAS, ANDROID_KEYSTORE_PASSWORD  (tools/New-AndroidKey.ps1 makes them)
 name: Android
 
 on:
@@ -27,6 +27,12 @@ jobs:
         with: { distribution: temurin, java-version: '21' }
       - run: dotnet workload install android
 
+      - name: Keep the signing key between builds
+        uses: actions/cache@v4
+        with:
+          path: ~/android-key
+          key: mechgarage-android-signing-key-v2
+
       - name: Set up signing
         env:
           KEY_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
@@ -34,13 +40,27 @@ jobs:
           KEY_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
           set -e
-          if [ -z "$KEY_B64" ] || [ -z "$KEY_ALIAS" ] || [ -z "$KEY_PASS" ]; then
-            echo "::error::No Android signing key. Run tools/New-AndroidKey.ps1 on your PC once and add the three ANDROID_KEYSTORE_* repository secrets it prints (Settings > Secrets and variables > Actions)."
-            exit 1
+          mkdir -p ~/android-key
+          if [ -n "$KEY_B64" ] && [ -n "$KEY_ALIAS" ] && [ -n "$KEY_PASS" ]; then
+            echo "$KEY_B64" | base64 -d > "$RUNNER_TEMP/secret.keystore"
+            KS="$RUNNER_TEMP/secret.keystore"; ALIAS="$KEY_ALIAS"; PASS="$KEY_PASS"
+            echo "Using the signing key from the repository secrets."
+          else
+            KS=~/android-key/release.keystore; ALIAS="mechgarage"
+            if [ ! -f "$KS" ]; then
+              # first release: make the permanent key, with a random password kept next to it in the cache
+              head -c 24 /dev/urandom | base64 | tr -d '/+=' > ~/android-key/password.txt
+              PASS=$(cat ~/android-key/password.txt)
+              keytool -genkeypair -keystore "$KS" -alias "$ALIAS" -keyalg RSA -keysize 2048 -validity 10000 \
+                -storepass "$PASS" -keypass "$PASS" -dname "CN=Mech Garage" > /dev/null
+              echo "::notice::Made Mech Garage's signing key. GitHub keeps it in the Actions cache."
+            else
+              PASS=$(cat ~/android-key/password.txt)
+              echo "Using the cached signing key."
+            fi
           fi
-          mkdir -p "$RUNNER_TEMP/key"
-          echo "$KEY_B64" | base64 -d > "$RUNNER_TEMP/key/release.keystore"
-          { echo "MG_KEYSTORE=$RUNNER_TEMP/key/release.keystore"; echo "MG_KEY_ALIAS=$KEY_ALIAS"; echo "MG_KEY_PASS=$KEY_PASS"; } >> "$GITHUB_ENV"
+          echo "::add-mask::$PASS"
+          { echo "MG_KEYSTORE=$KS"; echo "MG_KEY_ALIAS=$ALIAS"; echo "MG_KEY_PASS=$PASS"; } >> "$GITHUB_ENV"
 
       - name: Build the release .apk
         run: |
@@ -56,7 +76,7 @@ jobs:
             --ks-pass env:MG_KEY_PASS --key-pass env:MG_KEY_PASS --out MechGarage-android.apk "$APK"
           "$BT/apksigner" verify --print-certs MechGarage-android.apk | head -5
           ls -la MechGarage-android.apk
-          rm -f "$MG_KEYSTORE"
+          rm -f "$RUNNER_TEMP/secret.keystore"
 
       - uses: actions/upload-artifact@v4
         with:

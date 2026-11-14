@@ -59,11 +59,11 @@ GitHub builds, signs and publishes every release, the same way as SauceStore its
 3. GitHub builds `MechGarage-windows.zip` and `MechGarage-android.apk`, signs the Android app, and publishes release
    `v<version>`. SauceStore lists it within about 10 minutes.
 
-**Android key (once):** run `./tools/New-AndroidKey.ps1` on your PC. It makes the permanent signing key in
-`SauceStore Keys` with a random password and prints three repository secrets to add (Settings > Secrets and
-variables > Actions): `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_ALIAS`, `ANDROID_KEYSTORE_PASSWORD`. Back up the
-key file and the password. Releases are signed on GitHub with it; the key never goes in the repo, and pull requests
-from other people can't read secrets.
+**Android key:** GitHub makes it on the first release and keeps it in the repo's Actions cache;
+*Keep the Android key* touches it every 3 days so GitHub never clears it. Because this repo is public, keep
+**Settings > Actions > General > Require approval for all external contributors** on, so strangers' pull requests
+can't run builds that read the cache. (To use a key of your own instead, run `./tools/New-AndroidKey.ps1` and add
+the three `ANDROID_KEYSTORE_*` secrets it prints; they take priority.)
 
 **Windows:** unsigned unless you add the `WINDOWS_PFX_BASE64` and `WINDOWS_PFX_PASSWORD` secrets (your family
 certificate), like SauceStore.
