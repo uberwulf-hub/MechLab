@@ -152,7 +152,7 @@ input, select, textarea { user-select: text; -webkit-user-select: text; }
 .mobile-only { display: none; }
 
 /* ---------- phones and small tablets ---------- */
-@media (max-width: 900px) {
+@media (max-width: 900px), (max-height: 560px) and (pointer: coarse) {
   .mobile-only { display: initial; }
   #topbar { padding: max(10px, env(safe-area-inset-top)) 10px 10px; flex-direction: column; gap: 8px; }
   .brand .title { font-size: 18px; }
@@ -289,7 +289,7 @@ body.sim-on #mic { right: 20px; top: 200px; bottom: auto; width: 60px; height: 6
   body.sim-on #mic { top: 60px; right: 124px; width: 50px; height: 50px; }
   .sim-radio { top: auto; bottom: 74px; max-width: 46vw; font-size: 13px; }
 }
-@media (max-width: 900px) {
+@media (max-width: 900px), (max-height: 560px) and (pointer: coarse) {
   .bp { top: auto; left: 8px; right: 8px; bottom: 8px; width: auto; height: 50vh; }
 }
 body.bp-on #mic { display: none; }
@@ -321,7 +321,7 @@ body.bp-on #mic { display: none; }
   #col-right { width: 290px; }
   .holdbar { left: 282px; right: 322px; }
 }
-@media (max-width: 900px) {
+@media (max-width: 900px), (max-height: 560px) and (pointer: coarse) {
   .col { display: contents; }
   #parts, #chat { position: fixed; }
   #mic { position: fixed; right: 16px; bottom: 16px; margin: 0; }
@@ -358,3 +358,28 @@ body.sim-on #col-right { z-index: 7; }
 .sim-cross.locked { color: #ff6b5c; }
 .sim-lock { position: absolute; left: 0; top: 0; width: 44px; height: 44px; border: 2px solid #ff6b5c; border-radius: 50%; pointer-events: none !important; box-shadow: 0 0 12px rgba(255,107,92,.6); transition: transform .06s linear; }
 .sim-lock::after { content: ""; position: absolute; inset: 14px; border: 2px solid rgba(255,107,92,.7); border-radius: 50%; }
+
+/* ---------- phones on their side ----------
+   The screen is wide but short, so the parts list and the helper slide in from the left as tall side sheets
+   (instead of thin strips across the top), and the top bar shrinks to one slim row. */
+@media (max-height: 560px) and (orientation: landscape) and (pointer: coarse) {
+  #topbar { flex-direction: row; align-items: center; gap: 10px; padding: max(6px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) 6px max(10px, env(safe-area-inset-left)); }
+  .brand { flex: 0 1 auto; min-width: 0; }
+  .brand .title { font-size: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tools { flex: 0 1 auto; min-width: 0; margin-left: auto; }
+  .tool { min-width: 50px; padding: 4px 5px; gap: 1px; }
+  .tool b { font-size: 15px; }
+  .tool span { font-size: 9px; letter-spacing: .08em; }
+  #parts, #chat { left: max(8px, env(safe-area-inset-left)); right: auto; top: 8px; bottom: 8px; height: auto; width: min(420px, 50vw); z-index: 12; }
+  #parts .panel-head, #chat .panel-head { padding: 8px 12px; }
+  .chips { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 6px; scrollbar-width: none; }
+  .chips > * { flex: none; }
+  #col-right .drawer { left: auto; right: max(8px, env(safe-area-inset-right)); top: 8px; width: min(440px, 60vw); max-height: calc(100% - 16px); z-index: 12; }
+  #mobile-tabs { left: max(10px, env(safe-area-inset-left)); bottom: 10px; }
+  /* with a sheet open, the Parts / Helper tabs move beside it so you can switch straight across */
+  body:has(#parts.open) #mobile-tabs, body:has(#chat.open) #mobile-tabs { left: calc(max(8px, env(safe-area-inset-left)) + min(420px, 50vw) + 10px); z-index: 13; }
+  #mic { width: 58px; height: 58px; right: max(14px, env(safe-area-inset-right)); bottom: 10px; }
+  #heard { left: auto; right: 90px; bottom: 18px; max-width: 45vw; }
+  .holdbar { left: auto; right: 86px; bottom: 10px; width: auto; max-width: 62vw; }
+  .bp { top: 8px; bottom: 8px; left: auto; right: 8px; width: min(440px, 55vw); height: auto; }
+}

@@ -20,6 +20,10 @@ import { Jazz, TRACKS } from './music.js';
 import { Boombox } from './boombox.js';
 import { Perf } from './perf.js';
 
+/** Phones (and phones on their side): panels open one at a time as sheets. Matches the CSS. */
+const COMPACT = matchMedia('(max-width: 900px), (max-height: 560px) and (pointer: coarse)');
+const compact = () => COMPACT.matches;
+
 // ======================================================================
 // saved state
 // ======================================================================
@@ -815,7 +819,7 @@ function openCustom(slot) {
   customSlot = slot;
   for (const d of ['paint', 'settings']) $(d).classList.add('hidden');
   $('custom').classList.remove('hidden');
-  if (innerWidth <= 900) $('chat').classList.remove('open');
+  if (compact()) $('chat').classList.remove('open');
   renderCustom();
   sfx.blip();
 }
@@ -1184,7 +1188,7 @@ function makeDraggable(card, part) {
         dragging = true;
         ghost.textContent = part.name;
         ghost.classList.remove('hidden');
-        if (innerWidth <= 900) $('parts').classList.remove('open');
+        if (compact()) $('parts').classList.remove('open');
       }
       if (dragging) { ghost.style.left = `${ev.clientX}px`; ghost.style.top = `${ev.clientY}px`; }
     };
