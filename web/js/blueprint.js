@@ -78,13 +78,16 @@ export class Blueprint {
   /** Swaps every mech mesh to blueprint fill and adds white edge lines. Called again when parts change. */
   applyLook() {
     this.clearLook();
-    const meshes = [];
-    const visit = (root) => root.traverse((o) => { if (o.isMesh) meshes.push(o); });
+    // a Set: limbs hang inside the cockpit's group, so the same mesh is reached twice. Swapping it twice would
+    // remember the blueprint fill as its "real" paint, and the part would stay blue after leaving.
+    const meshes = new Set();
+    const visit = (root) => root.traverse((o) => { if (o.isMesh) meshes.add(o); });
     if (this.mech.hull) visit(this.mech.hull.group);
     for (const a of Object.values(this.mech.attached)) visit(a.group);
     for (const o of meshes) {
       const orig = o.material;
       const first = Array.isArray(orig) ? orig[0] : orig;
+      if (orig === this.fill) continue;
       this.swapped.set(o, { material: orig, visible: o.visible });
       if (first?.transparent && first.depthWrite === false) { o.visible = false; continue; } // decals
       o.material = this.fill;
