@@ -1,6 +1,6 @@
 // The mech on the assembly stand: which part is on which socket, the part being held out for fitting, paint and animation.
 import * as THREE from '../vendor/three/three.module.js';
-import { SLOTS, PARTS, partById, buildPart, makeMaterials, repaint } from './parts.js';
+import { SLOTS, PARTS, partById, buildPart, makeMaterials, repaint, setFinish } from './parts.js';
 
 /** Size and length limits for customising a part. */
 export const CUSTOM_LIMITS = { scale: [0.8, 1.3], length: [0.8, 1.4] };
@@ -10,6 +10,8 @@ import { LAYOUT } from './garage.js';
 export const stageDist = (slot) => slot === 'hull' ? 1.9 : slot.startsWith('shoulder') ? 1.1 : slot === 'back' ? 1.4 : slot === 'head' ? 1.3 : 1.6;
 export const SEAT_DIST = 0.35;          // close enough to lock on
 const PLATFORM_TOP = 0.16;
+/** Does a slot's customising need its own materials (rather than the mech's shared paint)? */
+const ownMats = (c) => !!(c.primary || c.accent || c.glow || (c.finish && c.finish !== 'painted'));
 
 const HULL_SOCKET = { pos: [0, 0, 0], out: [0, 0, 1] };
 
@@ -78,10 +80,11 @@ export class Mech {
     const c = this.custom[slot];
     if (!c) return this.mats;
     let m = this.mats;
-    if (c.primary || c.accent) {
+    if (ownMats(c)) {
       this.slotMats ??= {};
       m = this.slotMats[slot] ??= makeMaterials(this.paint);
-      repaint(m, { primary: c.primary ?? this.paint.primary, accent: c.accent ?? this.paint.accent, glow: this.paint.glow });
+      repaint(m, { primary: c.primary ?? this.paint.primary, accent: c.accent ?? this.paint.accent, glow: c.glow ?? this.paint.glow });
+      setFinish(m, c.finish);
     }
     return c.label ? { ...m, label: c.label } : m;
   }
@@ -216,10 +219,10 @@ export class Mech {
   setPaint(p) {
     Object.assign(this.paint, p);
     repaint(this.mats, this.paint);
-    // parts with their own paint keep it, but share the mech's light colour
+    // parts with their own paint keep it (and their own light colour, if they have one)
     for (const [slot, m] of Object.entries(this.slotMats ?? {})) {
       const c = this.custom[slot] ?? {};
-      repaint(m, { primary: c.primary ?? this.paint.primary, accent: c.accent ?? this.paint.accent, glow: this.paint.glow });
+      repaint(m, { primary: c.primary ?? this.paint.primary, accent: c.accent ?? this.paint.accent, glow: c.glow ?? this.paint.glow });
     }
   }
 
@@ -235,7 +238,7 @@ export class Mech {
     if (c.scale === 1) delete c.scale;
     if (c.length === 1) delete c.length;
     if (Object.keys(c).length) this.custom[slot] = c; else delete this.custom[slot];
-    if (!(c.primary || c.accent) && this.slotMats?.[slot]) delete this.slotMats[slot];
+    if (!ownMats(c) && this.slotMats?.[slot]) delete this.slotMats[slot];
     this.rebuild(slot);
   }
 

@@ -22,6 +22,21 @@ export function makeMaterials(paint) {
   return m;
 }
 
+/** Surface finishes a part can have: how shiny or worn its paint is. */
+export const FINISHES = {
+  painted: { label: 'Painted', paint: [0.35, 0.6], accent: [0.5, 0.45] },
+  shiny:   { label: 'Shiny chrome', paint: [0.9, 0.16], accent: [0.95, 0.14] },
+  worn:    { label: 'Battle-worn', paint: [0.25, 0.88], accent: [0.35, 0.8] },
+  matte:   { label: 'Matte stealth', paint: [0.05, 0.95], accent: [0.1, 0.9] },
+};
+export function setFinish(mats, finish = 'painted') {
+  const f = FINISHES[finish] ?? FINISHES.painted;
+  for (const [k, [metal, rough]] of [['paint', f.paint], ['container', f.paint], ['accent', f.accent]]) {
+    mats[k].metalness = metal;
+    mats[k].roughness = k === 'container' ? Math.min(1, rough + 0.05) : rough;
+  }
+}
+
 export function repaint(mats, paint) {
   mats.paint.color.set(paint.primary);
   mats.container.color.set(paint.primary);

@@ -10,7 +10,7 @@ import { buildGarage, LAYOUT } from './garage.js';
 import { Mech, stageDist, SEAT_DIST } from './mech.js';
 import { Robot } from './robot.js';
 import { Sparks, hologram, materialize, dematerialize } from './fx.js';
-import { PARTS, SLOTS, SLOT_ORDER, partById, partsFor, COLORS, GLOW_COLORS } from './parts.js';
+import { PARTS, SLOTS, SLOT_ORDER, partById, partsFor, COLORS, GLOW_COLORS, FINISHES } from './parts.js';
 import { understand, say, KIND_LABEL } from './brain.js';
 import * as voice from './voice.js';
 import * as sfx from './audio.js';
@@ -768,7 +768,8 @@ $('rename-mech').onclick = () => {
   const n = prompt('Name your mech', state.mechName);
   if (n?.trim()) handle(`call the mech ${n.trim()}`);
 };
-for (const b of document.querySelectorAll('[data-close]')) b.onclick = () => { const el = $(b.dataset.close); el.classList.add('hidden'); el.classList.remove('open'); if (b.dataset.close === 'parts' || b.dataset.close === 'chat') el.classList.remove('hidden'); };
+for (const b of document.querySelectorAll('[data-close]')) b.onclick = () => {
+  if (b.dataset.close === 'custom') return endCloseUp(); const el = $(b.dataset.close); el.classList.add('hidden'); el.classList.remove('open'); if (b.dataset.close === 'parts' || b.dataset.close === 'chat') el.classList.remove('hidden'); };
 for (const b of document.querySelectorAll('[data-open]')) b.onclick = () => {
   const id = b.dataset.open;
   for (const o of ['parts', 'chat']) if (o !== id) $(o).classList.remove('open');
@@ -820,8 +821,24 @@ function openCustom(slot) {
   for (const d of ['paint', 'settings']) $(d).classList.add('hidden');
   $('custom').classList.remove('hidden');
   if (compact()) $('chat').classList.remove('open');
+  closeUp(slot);
   renderCustom();
   sfx.blip();
+}
+// the camera glides in close to the part being customised, and back out when done
+let beforeCloseUp = null;
+function closeUp(slot) {
+  const g = slot === 'hull' ? mech.hull?.group : mech.attached[slot]?.group;
+  if (!g) return;
+  beforeCloseUp ??= { target: controls.target.clone(), dist: camera.position.distanceTo(controls.target) };
+  const box = new THREE.Box3().setFromObject(g);
+  const size = box.getSize(new THREE.Vector3()).length();
+  camTween = { target: box.getCenter(new THREE.Vector3()), dist: THREE.MathUtils.clamp(size * 1.9, controls.minDistance, 8), t: 0 };
+}
+function endCloseUp() {
+  $('custom').classList.add('hidden');
+  if (beforeCloseUp) camTween = { target: beforeCloseUp.target, dist: beforeCloseUp.dist, t: 0 };
+  beforeCloseUp = null;
 }
 function renderCustom() {
   const slot = customSlot;
@@ -862,6 +879,33 @@ function renderCustom() {
     }
     for (const b of el.children) b.classList.toggle('on', (b.dataset.hex || null) === (c[target] ?? null));
   }
+  // its own light colour
+  const gl = $('cu-glow');
+  if (!gl.children.length) {
+    for (const [name, hex] of [['same', ''], ...Object.entries(GLOW_COLORS)]) {
+      const b = document.createElement('button');
+      b.className = hex ? 'sw glow' : 'sw same';
+      if (hex) { b.style.background = hex; b.style.boxShadow = `0 0 10px ${hex}`; }
+      b.title = hex ? name : 'Same as the mech';
+      b.dataset.hex = hex;
+      b.onclick = () => customizeSlot(customSlot, { glow: hex || null });
+      gl.append(b);
+    }
+  }
+  for (const b of gl.children) b.classList.toggle('on', (b.dataset.hex || null) === (c.glow ?? null));
+  // finish
+  const fe = $('cu-finish');
+  if (!fe.children.length) {
+    for (const [id, f] of Object.entries(FINISHES)) {
+      const b = document.createElement('button');
+      b.className = 'btn ghost';
+      b.textContent = f.label;
+      b.dataset.finish = id;
+      b.onclick = () => customizeSlot(customSlot, { finish: id === 'painted' ? null : id });
+      fe.append(b);
+    }
+  }
+  for (const b of fe.children) b.classList.toggle('on', b.dataset.finish === (c.finish ?? 'painted'));
 }
 function customizeSlot(slot, patch, { quiet = true } = {}) {
   mech.customize(slot, patch);
@@ -879,7 +923,7 @@ $('cu-reset').onclick = () => {
   mech.custom[customSlot] = keep ? { nickname: keep } : {};
   customizeSlot(customSlot, {});
 };
-$('cu-done').onclick = () => $('custom').classList.add('hidden');
+$('cu-done').onclick = endCloseUp;
 
 /** Voice: "make the left arm bigger", "paint the legs red", "call the left arm Big Bertha", "write TITAN on the cockpit". */
 async function customizeByVoice(a) {
@@ -1183,19 +1227,40 @@ function makeDraggable(card, part) {
     const start = { x: e.clientX, y: e.clientY };
     let dragging = false;
     const ghost = $('drag-ghost');
+    // On a touch screen, sliding up or down scrolls the list (the browser takes over and cancels this press).
+    // Sliding sideways, toward the mech, or pressing and holding for a moment picks the part up.
+    const touch = e.pointerType !== 'mouse';
+    let held = false;
+    const holdTimer = touch ? setTimeout(() => { held = true; navigator.vibrate?.(15); card.classList.add('lifting'); }, 380) : 0;
+    const begin = () => {
+      dragging = true;
+      clearTimeout(holdTimer);
+      card.classList.add('lifting');
+      ghost.textContent = part.name;
+      ghost.classList.remove('hidden');
+      if (compact()) $('parts').classList.remove('open');
+    };
     const move = (ev) => {
-      if (!dragging && Math.hypot(ev.clientX - start.x, ev.clientY - start.y) > 10) {
-        dragging = true;
-        ghost.textContent = part.name;
-        ghost.classList.remove('hidden');
-        if (compact()) $('parts').classList.remove('open');
+      if (!dragging) {
+        const dx = Math.abs(ev.clientX - start.x), dy = Math.abs(ev.clientY - start.y);
+        if (!touch && Math.hypot(dx, dy) > 10) begin();
+        else if (touch && (held ? Math.hypot(dx, dy) > 6 : dx > 14 && dx > dy * 1.5)) begin();
+        else if (touch && !held && dy > 10) { cancel(); return; }
       }
       if (dragging) { ghost.style.left = `${ev.clientX}px`; ghost.style.top = `${ev.clientY}px`; }
     };
-    const up = (ev) => {
+    const cleanup = () => {
+      clearTimeout(holdTimer);
+      card.classList.remove('lifting');
       removeEventListener('pointermove', move);
       removeEventListener('pointerup', up);
+      removeEventListener('pointercancel', cancel);
       ghost.classList.add('hidden');
+    };
+    // the list scrolled instead: no tap, no drag
+    const cancel = () => cleanup();
+    const up = (ev) => {
+      cleanup();
       if (!dragging) {
         // tap: bring it for the first matching empty slot
         const slot = slotsOfKind(part.kind).length > 1 ? `${part.kind}?` : part.kind;
@@ -1219,7 +1284,10 @@ function makeDraggable(card, part) {
     };
     addEventListener('pointermove', move);
     addEventListener('pointerup', up);
+    addEventListener('pointercancel', cancel);
   });
+  // once a part is lifted (held, or dragged sideways), the list mustn't scroll under the finger
+  card.addEventListener('touchmove', (e) => { if (card.classList.contains('lifting') || !$('drag-ghost').classList.contains('hidden')) e.preventDefault(); }, { passive: false });
 }
 
 // ======================================================================
