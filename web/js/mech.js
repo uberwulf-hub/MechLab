@@ -395,6 +395,10 @@ export class Mech {
       if (o.userData.beacon) o.rotation.y += dt * 6;
       if (o.userData.dish) o.rotation.z = Math.sin(t * 0.8) * 0.6;
       if (o.userData.ring) o.rotation.z += dt * 2;
+      if (o.userData.sweep) o.position.x = Math.sin(t * 2.2) * o.userData.sweep;
+      if (o.userData.pulse) o.scale.setScalar(1 + Math.sin(t * 5 + o.id) * 0.07);
+      if (o.userData.swing) { o.rotation.x = Math.sin(t * (walk ? 4 : 1.3)) * (walk ? 0.45 : 0.12); o.rotation.z = Math.cos(t * 1.1) * 0.08; }
+      if (o.userData.flag) o.rotation.y = Math.sin(t * (walk ? 6 : 2)) * (walk ? 0.45 : 0.18);
     });
     if (this.hull) this.hull.group.rotation.z = walk ? Math.sin(w) * 0.02 : 0;
   }

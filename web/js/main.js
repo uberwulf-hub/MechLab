@@ -625,11 +625,30 @@ function renderTabs() {
   }
 }
 
+// style families: Classic (the original container parts), Samurai, Junkyard, Racer, Tesla
+let styleFilter = 'All';
+const styleOf = (p) => p.style ?? 'Classic';
+function renderStyleFilter() {
+  const el = $('style-filter');
+  el.innerHTML = '';
+  const styles = ['All', ...new Set(PARTS.map(styleOf))];
+  for (const st of styles) {
+    const b = document.createElement('button');
+    b.className = 'chip' + (styleFilter === st ? ' on' : '');
+    b.textContent = st;
+    b.onclick = () => { styleFilter = st; sfx.blip(); renderStyleFilter(); renderParts(); };
+    el.append(b);
+  }
+}
+
 function renderParts() {
   const el = $('part-list');
   el.innerHTML = '';
+  if (!$('style-filter').children.length) renderStyleFilter();
   const slots = slotsOfKind(activeTab);
-  for (const p of PARTS.filter((x) => x.kind === activeTab)) {
+  const shown = PARTS.filter((x) => x.kind === activeTab && (styleFilter === 'All' || styleOf(x) === styleFilter));
+  if (!shown.length) el.innerHTML = `<p class="sub" style="padding:6px 2px">No ${styleFilter} parts for this slot yet. Try another style.</p>`;
+  for (const p of shown) {
     const card = document.createElement('div');
     card.className = 'part';
     const onSlots = slots.filter((s) => mech.partIn(s)?.id === p.id);
@@ -641,6 +660,7 @@ function renderParts() {
     card.innerHTML = `<span class="badge">${badge}</span><div class="name"></div><div class="desc"></div>
       <div class="stats"><span>ARM <b>${st.armor}</b></span><span>PWR <b>${st.power > 0 ? '+' : ''}${st.power}</b></span><span>WT <b>${st.weight}t</b></span></div>`;
     card.querySelector('.name').textContent = p.name + onSlots.map((sl) => mech.nickname(sl)).filter(Boolean).map((n) => ` “${n}”`).join('');
+    if (p.style) { const tag = document.createElement('span'); tag.className = 'style'; tag.textContent = p.style; card.querySelector('.name').append(tag); }
     card.querySelector('.desc').textContent = p.desc;
     makeDraggable(card, p);
     el.append(card);

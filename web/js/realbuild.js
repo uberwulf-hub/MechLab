@@ -64,6 +64,23 @@ export const REAL_PARTS = {
   'sh-turret': { mats: [X('Small box', 1), X('Pencils or dowels (barrels)', 2)], how: 'A small box with two dowel barrels sticking out.' },
   'sh-dish': { mats: [X('Plastic bowl', 1), X('Wooden dowel', 1)], how: 'A bowl on a dowel.' },
   'sh-spikes': { mats: [X('Plastic bowl', 1), X('Cardboard cones', 5)], how: 'A bowl with cardboard cone spikes.' },
+  // style families
+  'hull-samurai': { mats: [L(3), X('Cardboard strips (armour plates)', 10), X('Gold card (crest)', 1), X('Clear plastic sheet (window)', 1), X('Zip ties', 40, 'Hardware')], how: 'Stack 3 large containers. Glue overlapping cardboard strips across the front like samurai armour, and add a gold card V-crest on top.' },
+  'hull-junk': { mats: [L(2), S(1), X('Old tyre or swim ring', 1), X('Scrap card painted rust brown', 2), X('Zip ties', 40, 'Hardware')], how: 'Zip tie 2 large containers and 1 small one together a bit crooked on purpose. Add a rusty painted panel and an old tyre as a bumper.' },
+  'hull-racer': { mats: [L(2), X('Clear plastic bowl (canopy)', 1), X('Cardboard fins', 2), X('Zip ties', 30, 'Hardware')], how: 'Lay 2 large containers end to end for a long body. Add a clear bowl as the canopy and two cardboard tail fins.' },
+  'head-grille': { mats: [X('Cooling rack or grill grate', 1), X('LED lights (2)', 2, 'Lights')], how: 'Fix a small cooling rack over two LED lights on the front of the body.' },
+  'head-sweep': { mats: [X('Black card strip', 1), X('LED strip light', 1, 'Lights')], how: 'Put an LED strip behind a black card strip on the front. Set the LEDs to a chasing pattern if they have one.' },
+  'arm-sword': { mats: [S(2), M(2), X('Pool noodle or foam tube (blade)', 1), X('LED strip light', 1, 'Lights')], how: 'Two small containers and two motors, with a foam blade wrapped in LED light at the end.' },
+  'arm-wrecker': { mats: [S(2), M(2), X('Plastic chain', 1), X('Foam ball', 1), X('Cardboard cones', 5)], how: 'Two small containers and two motors. Hang a foam ball with cardboard spikes from a plastic chain.' },
+  'arm-tesla': { mats: [S(2), M(2), X('Copper-coloured wire or tape', 1), X('Clear ball ornament', 1), X('LED light', 1, 'Lights')], how: 'Two small containers and two motors. Wind copper wire around a tube and put a light inside a clear ball on the end.' },
+  'leg-spider': { mats: [S(2), M(2), X('Cardboard claws', 3)], how: 'Two small containers and two motors, with three cardboard claws for a foot.' },
+  'leg-hover': { mats: [S(2), M(2), X('Round plastic lid (pad)', 1), X('LED strip light (ring)', 1, 'Lights')], how: 'Two small containers and two motors. A round lid for the foot, with an LED strip around the edge underneath.' },
+  'leg-greave': { mats: [S(2), M(2), X('Cardboard strips (shin armour)', 6), X('Plywood (foot plate)', 1)], how: 'Two small containers and two motors, with overlapping cardboard armour strips down the front.' },
+  'back-wings': { mats: [X('Corrugated plastic sheet (wings)', 2), S(1), X('Hinges', 2, 'Hardware')], how: 'A small container on the back with two corrugated plastic wings on hinges so they fold.' },
+  'back-reactor': { mats: [S(1), X('Clear plastic bottle (core)', 1), X('LED light', 1, 'Lights'), X('Dowels (cage)', 4)], how: 'A small container on the back holding a clear bottle with a light inside, caged with four dowels.' },
+  'sh-mortar': { mats: [X('Cardboard tube', 1), X('Bottle cap', 1)], how: 'A short wide cardboard tube, tilted up.' },
+  'sh-banner': { mats: [X('Dowel (pole)', 1), X('Fabric (flag)', 1)], how: 'A tall dowel with a fabric flag in your mech colours.' },
+  'sh-exhaust': { mats: [X('Cardboard tubes (pipes)', 2), X('Silver tape', 1)], how: 'Two tubes of different heights wrapped in silver tape.' },
 };
 
 export const TOOLS = [

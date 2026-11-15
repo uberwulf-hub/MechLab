@@ -66,3 +66,13 @@ test('customising parts and the boombox by voice', () => {
   assert.equal(first('stop').type, 'stop');        // still stops the mech
   assert.equal(first('next one').type, 'cycle');   // still the next part
 });
+
+test('style family parts', () => {
+  const b = (t) => { const a = first(t); return a && `${a.type}:${a.slot}:${a.partId}`; };
+  assert.equal(b('bring me the samurai cockpit'), 'bring:hull:hull-samurai');
+  assert.equal(b('put a tesla coil on the right arm'), 'bring:armR:arm-tesla');
+  assert.equal(b('I want a wrecking ball on my left arm'), 'bring:armL:arm-wrecker');
+  assert.deepEqual(understand('give me hover legs', 'Rivet').map((a) => a.slot + ':' + a.partId), ['legL:leg-hover', 'legR:leg-hover']);
+  assert.equal(b('bring the glider wings'), 'bring:back:back-wings');
+  assert.equal(b('add a banner to the left shoulder'), 'bring:shoulderL:sh-banner');
+});

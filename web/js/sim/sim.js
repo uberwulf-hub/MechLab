@@ -43,6 +43,7 @@ export function abilities(layout, custom = {}) {
     jump: 10.5 * legSim('jump', 1),
     roll: legs.some((l) => l.sim?.roll),
     jets: !!back.jets,
+    glide: !!back.glide,
     rockets: (back.rockets ?? 0) + shoulders.reduce((a, s) => a + (s.rockets ?? 0), 0),
     light: !!has('light'),
     turret: shoulders.some((s) => s.turret),
@@ -339,6 +340,8 @@ export class Sim {
     }
     this.jumpHeld = inp.jump;
     pl.vel.y -= GRAVITY * dt;
+    // glider wings: holding jump while falling floats you down slowly
+    if (ab.glide && inp.jump && !pl.grounded && pl.vel.y < -3) pl.vel.y = THREE.MathUtils.lerp(pl.vel.y, -3, Math.min(1, dt * 6));
     pl.pos.addScaledVector(pl.vel, dt);
     this.planet.collide(pl.pos, 2.0);
     const ground = height(pl.pos.x, pl.pos.z);
@@ -512,6 +515,26 @@ export class Sim {
   fire(side, w) {
     const m = this.mech;
     const from = this.handWorld(side);
+    if (w.weapon === 'arc') {
+      // tesla coil: a lightning bolt to the creature in front, which jumps on to two more nearby
+      m.pose['aim' + side] = 1;
+      this.fireCool[side] = 0.55;
+      const dir = this.aimDir(from);
+      const hit = new Set();
+      let at = from, c = this.creatures.target(from, dir, 45, 0.5);
+      for (let i = 0; i < 3 && c; i++) {
+        hit.add(c);
+        const p = this.creatures.centre(c);
+        this.lightning(at, p);
+        this.zap(c, 1);
+        at = p;
+        c = this.creatures.near(p, 14).find((x) => !hit.has(x));
+      }
+      if (!hit.size) this.lightning(from, from.clone().addScaledVector(dir, 22));
+      sfx.laser();
+      this.shake = Math.max(this.shake, 0.06);
+      return;
+    }
     if (w.weapon === 'bolt' || w.weapon === 'twin') {
       m.pose['aim' + side] = 1;
       this.fireCool[side] = w.weapon === 'twin' ? 0.13 : 0.24;
@@ -521,27 +544,43 @@ export class Sim {
     } else {
       // punch: hits everything in front, short range, with a shockwave
       m.pose['punch' + side] = 1;
-      this.fireCool[side] = 0.45;
+      this.fireCool[side] = w.cool ?? 0.45;
       const fwd = new THREE.Vector3(Math.sin(this.player.yaw), 0, Math.cos(this.player.yaw));
-      const hitAt = this.player.pos.clone().setY(this.player.pos.y + 1.5).addScaledVector(fwd, 4);
+      const hitAt = this.player.pos.clone().setY(this.player.pos.y + 1.5).addScaledVector(fwd, w.reach ?? 4);
       let any = false;
-      for (const c of this.creatures.near(hitAt, 3.5)) { this.zap(c, w.power ?? 2); any = true; }
+      for (const c of this.creatures.near(hitAt, w.radius ?? 3.5)) { this.zap(c, w.power ?? 2); any = true; }
       this.sparks.burst(hitAt, any ? 50 : 15, 4);
       sfx.punch(any);
-      this.shake = Math.max(this.shake, 0.15);
+      this.shake = Math.max(this.shake, (w.power ?? 2) > 2.5 ? 0.3 : 0.15);
     }
   }
 
   saw(side, dt) {
     const fwd = new THREE.Vector3(Math.sin(this.player.yaw), 0, Math.cos(this.player.yaw));
-    const at = this.player.pos.clone().setY(this.player.pos.y + 2).addScaledVector(fwd, 4.2);
+    const w = this.ab.arms[side] ?? {};
+    const at = this.player.pos.clone().setY(this.player.pos.y + 2).addScaledVector(fwd, w.reach ?? 4.2);
     this.sawT = (this.sawT ?? 0) - dt;
     if (this.sawT <= 0) {
       this.sawT = 0.18;
       sfx.grind();
       this.sparks.burst(at, 8, 3);
-      for (const c of this.creatures.near(at, 3)) this.zap(c, 0.8);
+      for (const c of this.creatures.near(at, w.radius ?? 3)) this.zap(c, 0.8 * (w.power ?? 1));
     }
+  }
+
+  /** A jagged lightning bolt from a to b that flickers out. */
+  lightning(a, b) {
+    const pts = [];
+    const n = 10;
+    for (let i = 0; i <= n; i++) {
+      const p = a.clone().lerp(b, i / n);
+      if (i > 0 && i < n) p.add(new THREE.Vector3((Math.random() - 0.5) * 1.4, (Math.random() - 0.5) * 1.4, (Math.random() - 0.5) * 1.4));
+      pts.push(p);
+    }
+    const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), new THREE.LineBasicMaterial({ color: 0xbfe8ff, toneMapped: false }));
+    this.scene.add(line);
+    this.sparks.burst(b, 12, 3);
+    setTimeout(() => { line.removeFromParent(); line.geometry.dispose(); line.material.dispose(); }, 140);
   }
 
   makeShot(from, dir, speed, dmg, color, extra = {}) {

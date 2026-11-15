@@ -768,6 +768,264 @@ function spikePad(m) {
   return g;
 }
 
+// ---------- round 3: style families (Samurai, Junkyard, Racer, Tesla) ----------
+const rust = () => new THREE.MeshStandardMaterial({ color: 0x7a3f22, metalness: 0.4, roughness: 0.9, roughnessMap: tex.paintWear() });
+const tyreMat = () => new THREE.MeshStandardMaterial({ color: 0x141414, roughness: 0.95 });
+
+function samuraiHull(m) {
+  // Layered armour plates like a samurai's chest, with a gold crest on the front.
+  const g = new THREE.Group();
+  const w = 2.1, h = 1.6, d = 1.6;
+  g.add(mesh(box(w * 0.9, h, d * 0.9), m.dark));
+  for (let i = 0; i < 5; i++) {
+    const y = h / 2 - 0.16 - i * 0.3;
+    const plate = mesh(box(w + i * 0.04, 0.26, d + i * 0.03), i % 2 ? m.accent : m.paint, 0, y, 0);
+    plate.rotation.x = -0.06;
+    g.add(plate);
+    g.add(mesh(box(w + i * 0.04 + 0.02, 0.03, 0.04), m.steel, 0, y - 0.12, (d + i * 0.03) / 2 + 0.01));
+  }
+  g.add(mesh(box(0.9, 0.18, 0.04), m.glass, 0, h * 0.2, d / 2 + 0.06));
+  // crest: two golden blades in a V above the window
+  for (const s of [-1, 1]) {
+    const blade = mesh(box(0.08, 0.7, 0.04), m.accent, s * 0.22, h / 2 + 0.25, d / 2 - 0.05);
+    blade.rotation.z = -s * 0.5;
+    g.add(blade);
+  }
+  g.add(mesh(new THREE.SphereGeometry(0.09, 16, 10), m.glow, 0, h / 2 + 0.02, d / 2 - 0.02));
+  for (const s of [-1, 1]) {
+    const pad = mesh(box(0.35, 0.5, 0.75), m.paint, s * (w / 2 + 0.12), h * 0.32, 0);
+    pad.rotation.z = s * 0.25;
+    g.add(pad);
+  }
+  g.add(mesh(box(w * 0.8, 0.14, 0.9), m.motor, 0, -h / 2 - 0.03, 0));
+  return { group: g, sockets: HULL_SOCKETS(w, h, d, { head: { pos: [0, -h * 0.05, d / 2 + 0.05], out: [0, 0, 1] } }) };
+}
+
+function junkHull(m) {
+  // Bolted together from whatever was lying around: odd containers, a rusty panel, an old tyre as a bumper.
+  const g = new THREE.Group();
+  const r = rust();
+  const a = container(m, 1.2, 0.8, 1.6, { label: 'SCRAP' });
+  a.position.set(0.45, -0.38, 0);
+  a.rotation.y = 0.04;
+  const b = container(m, 0.95, 0.8, 1.45, { label: '' });
+  b.position.set(-0.55, -0.4, 0.06);
+  const c = container(m, 1.4, 0.72, 1.5, { label: '' });
+  c.position.set(-0.1, 0.4, -0.04);
+  c.rotation.z = -0.04;
+  g.add(a, b, c);
+  g.add(mesh(box(0.9, 0.5, 0.06), r, 0.35, -0.3, 0.86));
+  for (let i = 0; i < 6; i++) g.add(mesh(cyl(0.025, 0.03, 8), m.steel, 0.0 + (i % 3) * 0.33, -0.12 - Math.floor(i / 3) * 0.36, 0.9).rotateX(Math.PI / 2));
+  g.add(mesh(box(0.7, 0.3, 0.04), m.glass, -0.2, 0.45, 0.74));
+  const tyre = mesh(new THREE.TorusGeometry(0.32, 0.12, 12, 28), tyreMat(), -0.55, -0.4, 0.82);
+  g.add(tyre);
+  g.add(mesh(box(0.08, 0.9, 0.08), r, 0.85, 0.35, 0.6).rotateZ(0.3));
+  const w = 2.2, h = 1.6, d = 1.6;
+  for (const s of [-1, 1]) g.add(mesh(box(0.3, 0.5, 0.7), m.motor, s * (w / 2 + 0.1), h * 0.32, 0));
+  g.add(mesh(box(w * 0.8, 0.14, 0.9), m.motor, 0, -h / 2 - 0.03, 0));
+  return { group: g, sockets: HULL_SOCKETS(w, h, d, { head: { pos: [0.3, 0.1, 0.92], out: [0, 0, 1] } }) };
+}
+
+function racerHull(m) {
+  // A sleek capsule with a long canopy and tail fins. Light and fast.
+  const g = new THREE.Group();
+  const w = 1.8, h = 1.3, d = 2.0;
+  const body = mesh(new THREE.CapsuleGeometry(0.62, d - 1.1, 12, 32), m.paint);
+  body.rotation.x = Math.PI / 2;
+  body.scale.set(w / 1.24, 1, h / 1.24);
+  g.add(body);
+  const canopy = mesh(new THREE.SphereGeometry(0.5, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2), m.glass, 0, h * 0.3, 0.35);
+  canopy.scale.set(0.9, 0.6, 1.6);
+  g.add(canopy);
+  g.add(mesh(box(w * 1.02, 0.06, d * 0.7), m.accent, 0, 0, 0));
+  for (const s of [-1, 1]) {
+    const fin = mesh(box(0.05, 0.55, 0.6), m.accent, s * 0.35, h * 0.45, -d * 0.4);
+    fin.rotation.x = 0.5;
+    g.add(fin);
+    g.add(mesh(box(0.3, 0.45, 0.6), m.motor, s * (w / 2 + 0.08), h * 0.3, 0));
+  }
+  g.add(mesh(box(0.5, 0.05, 0.03), m.glow, 0, -0.1, d / 2 + 0.02));
+  g.add(mesh(box(w * 0.75, 0.14, 0.85), m.motor, 0, -h / 2 - 0.03, 0));
+  return { group: g, sockets: HULL_SOCKETS(w, h, d, { head: { pos: [0, -0.12, d / 2 + 0.02], out: [0, 0, 1] } }) };
+}
+
+function grilleSensor(m) {
+  // A fierce grille across the front with glowing eyes behind the bars.
+  const g = new THREE.Group();
+  g.add(mesh(box(0.95, 0.4, 0.14), m.dark, 0, 0, 0.05));
+  for (const s of [-1, 1]) g.add(mesh(box(0.22, 0.09, 0.03), m.glow, s * 0.24, 0.03, 0.12));
+  for (let i = 0; i < 4; i++) g.add(mesh(box(1.0, 0.035, 0.05), m.steel, 0, -0.13 + i * 0.09, 0.15));
+  g.add(mesh(box(1.02, 0.06, 0.18), m.accent, 0, 0.21, 0.06));
+  return g;
+}
+function sweepScanner(m) {
+  // A dark bar with a light that sweeps side to side.
+  const g = new THREE.Group();
+  g.add(mesh(box(1.0, 0.18, 0.14), m.motor, 0, 0, 0.05));
+  g.add(mesh(box(0.92, 0.1, 0.02), m.dark, 0, 0, 0.13));
+  const dot = mesh(box(0.12, 0.08, 0.03), m.glow, 0, 0, 0.14);
+  dot.userData.sweep = 0.38;
+  g.add(dot);
+  return g;
+}
+
+function swordArm(m, side) {
+  const { g, hand } = armBase(m, side, 'BLADE');
+  hand.add(mesh(box(0.35, 0.18, 0.35), m.motor));
+  hand.add(mesh(box(0.5, 0.08, 0.2), m.accent, 0, -0.14, 0));
+  hand.add(mesh(cyl(0.06, 0.25, 12), m.dark, 0, -0.3, 0));
+  const blade = mesh(box(0.06, 1.5, 0.22), m.glow, 0, -1.2, 0);
+  hand.add(blade);
+  hand.add(mesh(box(0.03, 1.5, 0.25), m.steel, 0, -1.2, 0));
+  return g;
+}
+function wreckerArm(m, side) {
+  const { g, hand } = armBase(m, side, 'WRECK');
+  hand.add(mesh(box(0.35, 0.2, 0.35), m.motor));
+  const chain = new THREE.Group();
+  chain.position.y = -0.1;
+  for (let i = 0; i < 4; i++) {
+    const link = mesh(new THREE.TorusGeometry(0.06, 0.02, 6, 12), m.steel, 0, -0.08 - i * 0.1, 0);
+    link.rotation.y = i % 2 ? Math.PI / 2 : 0;
+    chain.add(link);
+  }
+  const ball = mesh(new THREE.SphereGeometry(0.34, 24, 16), m.dark, 0, -0.75, 0);
+  chain.add(ball);
+  for (const [x, y, z] of [[0.34, 0, 0], [-0.34, 0, 0], [0, 0, 0.34], [0, 0, -0.34], [0, -0.34, 0]]) {
+    const spike = mesh(new THREE.ConeGeometry(0.06, 0.18, 8), m.steel, x, -0.75 + y, z);
+    spike.lookAt(new THREE.Vector3(x * 3, -0.75 + y * 3, z * 3));
+    spike.rotateX(Math.PI / 2);
+    chain.add(spike);
+  }
+  hand.add(chain);
+  chain.userData.swing = true;
+  return g;
+}
+function teslaArm(m, side) {
+  const { g, hand } = armBase(m, side, 'TESLA');
+  hand.add(mesh(box(0.38, 0.22, 0.38), m.motor));
+  hand.add(mesh(cyl(0.07, 0.6, 12), m.copper, 0, -0.4, 0));
+  for (let i = 0; i < 4; i++) hand.add(mesh(new THREE.TorusGeometry(0.16 - i * 0.02, 0.03, 8, 20), m.copper, 0, -0.2 - i * 0.12, 0).rotateX(Math.PI / 2));
+  const orb = mesh(new THREE.SphereGeometry(0.17, 20, 14), m.glow, 0, -0.82, 0);
+  orb.userData.pulse = true;
+  hand.add(orb);
+  return g;
+}
+
+function spiderLeg(m, side) {
+  // A high arched knee and three sharp claws.
+  const { g, ankle, knee, hip } = legBase(m, side, 'SPIDER');
+  hip.children[1].rotation.x = 0.2;
+  knee.add(mesh(new THREE.ConeGeometry(0.12, 0.5, 10), m.accent, 0, 0.35, -0.1));
+  ankle.add(mesh(box(0.4, 0.14, 0.4), m.motor));
+  for (const a of [0, 2.1, -2.1]) {
+    const claw = new THREE.Group();
+    claw.rotation.y = a;
+    const seg = mesh(box(0.12, 0.12, 0.55), m.paint, 0, -0.08, 0.3);
+    seg.rotation.x = -0.35;
+    const tip = mesh(new THREE.ConeGeometry(0.07, 0.3, 8), m.steel, 0, -0.2, 0.6);
+    tip.rotation.x = Math.PI / 2 + 0.6;
+    claw.add(seg, tip);
+    ankle.add(claw);
+  }
+  return g;
+}
+function hoverLeg(m, side) {
+  // No foot: a glowing hover pad that floats just off the ground.
+  const { g, ankle } = legBase(m, side, 'HOVER');
+  ankle.add(mesh(new THREE.CylinderGeometry(0.3, 0.45, 0.2, 24), m.paint, 0, -0.08, 0));
+  ankle.add(mesh(cyl(0.5, 0.06, 32), m.motor, 0, -0.2, 0));
+  const ring = mesh(new THREE.TorusGeometry(0.42, 0.04, 10, 40), m.glow, 0, -0.26, 0);
+  ring.rotation.x = Math.PI / 2;
+  ring.userData.pulse = true;
+  ankle.add(ring);
+  ankle.add(mesh(new THREE.CircleGeometry(0.36, 32), m.glow, 0, -0.25, 0).rotateX(Math.PI / 2));
+  return g;
+}
+function greaveLeg(m, side) {
+  // Samurai armour: overlapping shin guards and a heavy sandal foot.
+  const { g, ankle, knee, hip } = legBase(m, side, 'GUARD');
+  for (let i = 0; i < 3; i++) {
+    hip.add(mesh(box(0.7, 0.3, 0.12), i % 2 ? m.accent : m.paint, 0, -0.45 - i * 0.28, 0.36).rotateX(-0.12));
+    knee.add(mesh(box(0.64, 0.28, 0.12), i % 2 ? m.paint : m.accent, 0, -0.3 - i * 0.26, 0.33).rotateX(-0.1));
+  }
+  knee.add(mesh(new THREE.SphereGeometry(0.2, 16, 10, 0, Math.PI * 2, 0, Math.PI / 2), m.accent, 0, 0, 0.3).rotateX(Math.PI / 2));
+  ankle.add(mesh(box(0.5, 0.12, 0.5), m.motor));
+  ankle.add(mesh(box(0.75, 0.2, 1.05), m.dark, 0, -0.16, 0.1));
+  ankle.add(mesh(box(0.78, 0.06, 1.08), m.accent, 0, -0.04, 0.1));
+  return g;
+}
+
+function gliderWings(m) {
+  // Folding wings with thrusters underneath, for long gliding jumps.
+  const g = new THREE.Group();
+  g.add(mesh(box(0.8, 0.8, 0.35), m.motor, 0, 0, -0.18));
+  for (const s of [-1, 1]) {
+    const wing = new THREE.Group();
+    wing.position.set(s * 0.35, 0.25, -0.35);
+    wing.rotation.z = s * 0.35;
+    for (let i = 0; i < 3; i++) {
+      const fin = mesh(box(0.9 - i * 0.15, 0.08, 0.5), i === 0 ? m.paint : m.accent, s * (0.5 - i * 0.05), -i * 0.18, -i * 0.06);
+      fin.rotation.z = -s * i * 0.18;
+      wing.add(fin);
+    }
+    wing.add(mesh(box(0.7, 0.03, 0.04), m.glow, s * 0.5, 0.05, 0.26));
+    g.add(wing);
+    g.add(mesh(new THREE.CylinderGeometry(0.1, 0.15, 0.3, 16, 1, true), m.steel, s * 0.25, -0.5, -0.3));
+  }
+  return g;
+}
+function fusionReactor(m) {
+  // A glowing reactor core in a cage. Lots of power.
+  const g = new THREE.Group();
+  g.add(mesh(box(1.0, 1.0, 0.3), m.motor, 0, 0, -0.15));
+  const core = mesh(cyl(0.2, 0.8, 24), m.glow, 0, 0, -0.55);
+  core.userData.pulse = true;
+  g.add(core);
+  g.add(mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.85, 24, 1, true), m.glass, 0, 0, -0.55));
+  for (const a of [0, 1, 2, 3]) g.add(mesh(cyl(0.03, 0.95, 8), m.steel, Math.cos(a * Math.PI / 2 + 0.78) * 0.32, 0, -0.55 + Math.sin(a * Math.PI / 2 + 0.78) * 0.32));
+  for (const y of [-0.45, 0.45]) g.add(mesh(cyl(0.36, 0.08, 24), m.accent, 0, y, -0.55));
+  const ring = mesh(new THREE.TorusGeometry(0.4, 0.03, 8, 40), m.glow, 0, 0, -0.55);
+  ring.rotation.x = Math.PI / 2;
+  ring.userData.ring = true;
+  g.add(ring);
+  return g;
+}
+
+function mortarPod(m) {
+  const g = new THREE.Group();
+  g.add(mesh(cyl(0.2, 0.15, 16), m.motor, 0, 0.08, 0));
+  const tube = mesh(cyl(0.16, 0.6, 20), m.paint, 0, 0.4, -0.05);
+  tube.rotation.x = -0.4;
+  g.add(tube);
+  g.add(mesh(cyl(0.18, 0.06, 20), m.accent, 0, 0.62, 0.05).rotateX(-0.4));
+  g.add(mesh(box(0.08, 0.3, 0.2), m.steel, 0.18, 0.25, 0));
+  return g;
+}
+function bannerPole(m) {
+  // A tall samurai banner that flutters as you walk.
+  const g = new THREE.Group();
+  g.add(mesh(cyl(0.04, 1.8, 8), m.steel, 0, 0.9, -0.1));
+  g.add(mesh(box(0.5, 0.04, 0.04), m.steel, 0.25, 1.75, -0.1));
+  const flag = new THREE.Group();
+  flag.position.set(0.02, 1.73, -0.1);
+  flag.add(mesh(box(0.45, 0.95, 0.012), m.paint, 0.23, -0.48, 0));
+  for (const z of [-0.008, 0.008]) flag.add(mesh(new THREE.CircleGeometry(0.12, 20), m.accent, 0.23, -0.4, z).rotateY(z < 0 ? Math.PI : 0));
+  flag.userData.flag = true;
+  g.add(flag);
+  return g;
+}
+function exhaustStacks(m) {
+  const g = new THREE.Group();
+  g.add(mesh(box(0.4, 0.15, 0.35), m.motor, 0, 0.07, 0));
+  for (const [x, h] of [[-0.1, 0.8], [0.1, 0.65]]) {
+    g.add(mesh(cyl(0.07, h, 14), m.steel, x, 0.15 + h / 2, -0.05));
+    g.add(mesh(cyl(0.085, 0.06, 14), m.dark, x, 0.15 + h, -0.05));
+    g.add(mesh(cyl(0.05, 0.02, 14), m.glow, x, 0.18 + h, -0.05));
+  }
+  return g;
+}
+
 // ---------- the catalog ----------
 // stats: armor, power (kW), weight (tonnes), speed. Shown on the readout and used by the assistant.
 export const SLOTS = {
@@ -793,7 +1051,7 @@ export const PARTS = [
   { id: 'head-twin', kind: 'head', name: 'Twin Optics', words: ['twin', 'two', 'optics', 'binocular', 'eyes'], desc: 'Two long-range camera lenses.', stats: { armor: 2, power: -4, weight: 0.3, speed: 0 }, build: twinOptics },
 
   { id: 'arm-gripper', kind: 'arm', name: 'Container Arm', words: ['container', 'gripper', 'grabber', 'hand', 'claw', 'normal'], desc: 'Two containers and two motors, with a three-finger gripper.', stats: { armor: 10, power: -8, weight: 2.5, speed: 0 }, sim: { weapon: 'punch' }, build: gripperArm },
-  { id: 'arm-crusher', kind: 'arm', name: 'Crusher Fist', words: ['crusher', 'fist', 'punch', 'smash', 'hammer'], desc: 'A solid steel fist for heavy jobs.', stats: { armor: 14, power: -6, weight: 3.2, speed: -1 }, sim: { weapon: 'punch', power: 2 }, build: crusherArm },
+  { id: 'arm-crusher', kind: 'arm', name: 'Crusher Fist', words: ['crusher', 'fist', 'punch', 'smash', 'hammer'], desc: 'A solid steel fist for heavy jobs.', stats: { armor: 14, power: -6, weight: 3.2, speed: -1 }, sim: { weapon: 'punch', power: 3, cool: 0.6 }, build: crusherArm },
   { id: 'arm-cannon', kind: 'arm', name: 'Rivet Cannon', words: ['cannon', 'gun', 'blaster', 'shooter'], desc: 'Fires rivets to fix things from far away.', stats: { armor: 8, power: -14, weight: 2.8, speed: 0 }, sim: { weapon: 'bolt' }, build: cannonArm },
   { id: 'arm-cutter', kind: 'arm', name: 'Heavy Cutter', words: ['cutter', 'saw', 'blade', 'cutting', 'buzz'], desc: 'A very strong spinning cutter.', stats: { armor: 9, power: -16, weight: 3.0, speed: 0 }, sim: { weapon: 'saw' }, build: cutterArm },
 
@@ -828,6 +1086,23 @@ export const PARTS = [
   { id: 'sh-turret', kind: 'shoulder', name: 'Gun Turret', words: ['turret', 'gun', 'guns', 'auto'], desc: 'Shoots creatures by itself.', stats: { armor: 2, power: -5, weight: 0.7, speed: 0 }, sim: { turret: true }, build: gunTurret },
   { id: 'sh-dish', kind: 'shoulder', name: 'Radar Dish', words: ['dish', 'satellite', 'radar dish'], desc: 'Finds crystals from far away.', stats: { armor: 1, power: -2, weight: 0.4, speed: 0 }, sim: { radar: 1.5 }, build: radarDish },
   { id: 'sh-spikes', kind: 'shoulder', name: 'Spike Pad', words: ['spike', 'spikes', 'spiky', 'pointy'], desc: 'Spiky armour. Ouch for anything that bites.', stats: { armor: 7, power: 0, weight: 0.8, speed: 0 }, sim: { thorns: true }, build: spikePad },
+  // round 3: style families
+  { id: 'hull-samurai', kind: 'hull', name: 'Samurai Cockpit', style: 'Samurai', words: ['samurai', 'ninja', 'warrior', 'crest', 'plates'], desc: 'Layered armour plates and a golden crest. Tough and proud.', stats: { armor: 58, power: 0, weight: 11, speed: 0 }, build: samuraiHull },
+  { id: 'hull-junk', kind: 'hull', name: 'Junkyard Cockpit', style: 'Junkyard', words: ['junk', 'junkyard', 'scrap', 'rusty', 'trash'], desc: 'Bolted together from old containers, a rusty panel and a tyre.', stats: { armor: 45, power: 0, weight: 10, speed: 0 }, build: junkHull },
+  { id: 'hull-racer', kind: 'hull', name: 'Racer Cockpit', style: 'Racer', words: ['racer', 'racing', 'race', 'sleek', 'capsule', 'speedy'], desc: 'A sleek capsule with tail fins. The fastest body.', stats: { armor: 22, power: 0, weight: 5, speed: 3 }, build: racerHull },
+  { id: 'head-grille', kind: 'head', name: 'Battle Grille', style: 'Junkyard', words: ['grille', 'grill', 'bars', 'fierce', 'angry'], desc: 'Glowing eyes behind steel bars.', stats: { armor: 4, power: -2, weight: 0.4, speed: 0 }, sim: {}, build: grilleSensor },
+  { id: 'head-sweep', kind: 'head', name: 'Sweep Scanner', style: 'Racer', words: ['sweep', 'sweeping', 'scanner light', 'moving light'], desc: 'A light that sweeps side to side, scanning for creatures.', stats: { armor: 2, power: -3, weight: 0.3, speed: 0 }, sim: { radar: 1.5 }, build: sweepScanner },
+  { id: 'arm-sword', kind: 'arm', name: 'Energy Sword', style: 'Samurai', words: ['sword', 'katana', 'energy sword', 'lightsaber'], desc: 'A long glowing blade. Slices anything close.', stats: { armor: 8, power: -15, weight: 2.4, speed: 1 }, sim: { weapon: 'saw', power: 1.5, reach: 5.5, radius: 3.4 }, build: swordArm },
+  { id: 'arm-wrecker', kind: 'arm', name: 'Wrecking Ball', style: 'Junkyard', words: ['wrecking', 'ball', 'flail', 'mace', 'chain'], desc: 'A spiked ball on a chain. Huge hits, slow swings.', stats: { armor: 12, power: -6, weight: 3.6, speed: -1 }, sim: { weapon: 'punch', power: 4, cool: 0.9, reach: 4.5, radius: 4.8 }, build: wreckerArm },
+  { id: 'arm-tesla', kind: 'arm', name: 'Tesla Coil', style: 'Tesla', words: ['tesla', 'coil', 'lightning', 'electric', 'shock'], desc: 'Fires lightning that jumps from creature to creature.', stats: { armor: 7, power: -20, weight: 2.5, speed: 0 }, sim: { weapon: 'arc' }, build: teslaArm },
+  { id: 'leg-spider', kind: 'leg', name: 'Spider Leg', style: 'Tesla', words: ['spider leg', 'claw leg', 'arachnid', 'creepy'], desc: 'A high knee and three sharp claws. Grips and jumps.', stats: { armor: 9, power: -11, weight: 3.0, speed: 2 }, sim: { run: 1.1, jump: 1.45 }, build: spiderLeg },
+  { id: 'leg-hover', kind: 'leg', name: 'Hover Pad', style: 'Racer', words: ['hover', 'float', 'floating', 'antigravity'], desc: 'No foot: a glowing pad that floats over the ground. Very fast.', stats: { armor: 8, power: -18, weight: 2.8, speed: 4 }, sim: { run: 1.5, jump: 1.2, roll: true }, build: hoverLeg },
+  { id: 'leg-greave', kind: 'leg', name: 'Samurai Greave', style: 'Samurai', words: ['greave', 'greaves', 'samurai leg', 'armoured leg', 'armored leg'], desc: 'Overlapping shin armour. Slow but very tough.', stats: { armor: 20, power: -10, weight: 4.2, speed: 0 }, sim: { run: 0.95, jump: 0.9 }, build: greaveLeg },
+  { id: 'back-wings', kind: 'back', name: 'Glider Wings', style: 'Racer', words: ['wings', 'wing', 'glider', 'glide', 'flying'], desc: 'Folding wings with thrusters. Hold jump while falling to glide.', stats: { armor: 3, power: 20, weight: 1.4, speed: 2 }, sim: { jets: true, glide: true }, build: gliderWings },
+  { id: 'back-reactor', kind: 'back', name: 'Fusion Reactor', style: 'Tesla', words: ['reactor', 'fusion', 'core', 'nuclear'], desc: 'A glowing reactor core. The most power of any pack.', stats: { armor: 5, power: 90, weight: 2.4, speed: 0 }, sim: { energy: 2.0 }, build: fusionReactor },
+  { id: 'sh-mortar', kind: 'shoulder', name: 'Mini Mortar', style: 'Junkyard', words: ['mortar', 'lobber', 'tube'], desc: 'A tube that lobs three flare shells.', stats: { armor: 2, power: -2, weight: 0.6, speed: 0 }, sim: { rockets: 3 }, build: mortarPod },
+  { id: 'sh-banner', kind: 'shoulder', name: 'Samurai Banner', style: 'Samurai', words: ['banner', 'flag', 'pennant'], desc: 'A tall flag in your colours that flutters as you walk.', stats: { armor: 0, power: 0, weight: 0.3, speed: 0 }, sim: {}, build: bannerPole },
+  { id: 'sh-exhaust', kind: 'shoulder', name: 'Exhaust Stacks', style: 'Junkyard', words: ['exhaust', 'pipes', 'stacks', 'smokestack', 'chimney'], desc: 'Hot-rod exhaust pipes that glow when you run.', stats: { armor: 1, power: 0, weight: 0.4, speed: 1 }, sim: {}, build: exhaustStacks },
 ];
 
 export const partById = (id) => PARTS.find((p) => p.id === id);

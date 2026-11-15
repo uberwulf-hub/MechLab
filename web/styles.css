@@ -55,6 +55,10 @@ input, select, textarea { user-select: text; -webkit-user-select: text; }
 .tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 10px 12px 4px; }
 .tab { font: inherit; font-size: 11px; letter-spacing: .1em; text-transform: uppercase; padding: 6px 9px; border-radius: 3px; border: 1px solid var(--line); background: none; color: var(--muted); cursor: pointer; position: relative; }
 .tab.on { color: var(--text); border-color: var(--accent); background: rgba(226,160,63,.12); }
+.styles-row { display: flex; gap: 5px; padding: 0 12px 6px; overflow-x: auto; scrollbar-width: none; }
+.styles-row .chip { flex: none; font: inherit; font-size: 11px; padding: 4px 9px; border-radius: 12px; border: 1px solid var(--line); background: none; color: var(--muted); cursor: pointer; }
+.styles-row .chip.on { color: var(--text); border-color: var(--holo); background: rgba(92,207,255,.12); }
+.part .style { display: inline-block; margin-left: 6px; font-size: 9.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--holo); border: 1px solid rgba(92,207,255,.35); border-radius: 3px; padding: 0 4px; vertical-align: 2px; }
 .tab .dot { position: absolute; top: -3px; right: -3px; width: 7px; height: 7px; border-radius: 50%; background: var(--good); box-shadow: 0 0 6px var(--good); }
 .part-list { flex: 1; overflow-y: auto; padding: 8px 12px; display: flex; flex-direction: column; gap: 8px; }
 .part { position: relative; border: 1px solid var(--line); border-radius: 4px; padding: 10px 12px; background: rgba(255,255,255,.025); cursor: grab; transition: border-color .15s, background .15s; touch-action: pan-y; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
