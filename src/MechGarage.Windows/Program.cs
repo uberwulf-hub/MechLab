@@ -50,7 +50,8 @@ internal sealed class GameWindow : Form
         var data = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "MechGarage", "WebView2");
         try
         {
-            var env = await CoreWebView2Environment.CreateAsync(null, data);
+            // let the boombox's recorded songs play one after another without a click for each
+            var env = await CoreWebView2Environment.CreateAsync(null, data, new CoreWebView2EnvironmentOptions("--autoplay-policy=no-user-gesture-required"));
             await _web.EnsureCoreWebView2Async(env);
         }
         catch (WebView2RuntimeNotFoundException)

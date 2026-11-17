@@ -346,6 +346,8 @@ body.sim-on #col-right { z-index: 7; }
 .boombox { min-width: 250px; gap: 8px; z-index: 9; }
 .bb-head { display: flex; align-items: center; justify-content: space-between; }
 .bb-track { font-family: var(--mono); color: #7dffb0; background: #0c1a10; padding: 7px 9px; border-radius: 4px; font-size: 13px; }
+.bb-credit { font-size: 11px; line-height: 1.35; margin-top: -2px; }
+.bb-credit a { color: var(--holo); }
 .bb-btns { display: flex; gap: 6px; }
 .bb-btns .btn { flex: 1; font-size: 16px; padding: 8px; }
 .bb-vol { display: flex; align-items: center; gap: 8px; }

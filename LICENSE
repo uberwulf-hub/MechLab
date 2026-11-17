@@ -6,3 +6,6 @@ publish, distribute or sell this software or any part of it, in source or built 
 Bundled third-party code keeps its own licence: three.js (web/vendor/three, MIT, see web/vendor/three/LICENSE).
 The apps are built with .NET, WebView2, System.Speech and AndroidX libraries under their own licences, listed in
 saucestore.json.
+
+Bundled music keeps its own licence: the songs in web/music are by Kevin MacLeod (incompetech.com) and are used
+under Creative Commons Attribution 4.0 (https://creativecommons.org/licenses/by/4.0/). See CREDITS.md.

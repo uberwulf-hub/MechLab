@@ -1,6 +1,10 @@
-// The garage boombox: a little smooth-jazz band played live with Web Audio. No recordings: every note is made here,
-// so there's nothing to license. Electric piano chords, a walking upright bass, brushed drums with a ride cymbal, and a
-// sax, vibraphone or electric piano lead that improvises over the chord changes. Five original tunes take turns.
+// The garage boombox. Two kinds of music take turns on one playlist:
+//  - Records: real recorded jazz songs listed in web/music/tracks.json (each with its artist, licence and link; the
+//    credits show on the boombox and in CREDITS.md). Played from the file, through the boombox's tone and volume.
+//  - The band: a little smooth-jazz band played live with Web Audio. Every note is made here, so there's nothing to
+//    license. Electric piano chords, a walking upright bass, brushed drums with a ride cymbal, and a sax, vibraphone or
+//    electric piano lead that improvises over the chord changes. Five original tunes.
+// With no records listed, the band plays on its own, as before.
 
 export const TRACKS = [
   { name: 'Rivet Lounge', bpm: 92, swing: 0.62, lead: 'sax', minor: false, key: 2,
@@ -57,7 +61,24 @@ export class Jazz {
     this.level = 0;
   }
 
-  get track() { return TRACKS[this.index]; }
+  /** Records first (real songs), then the band's own tunes. */
+  get list() { return [...(this.records ?? []), ...TRACKS]; }
+  get track() { return this.list[this.index] ?? TRACKS[0]; }
+  get isRecord() { return !!this.track.file; }
+
+  /** Reads the list of recorded songs (web/music/tracks.json). Missing or empty: just the band. */
+  async loadRecords(base = 'music/') {
+    try {
+      const r = await fetch(base + 'tracks.json', { cache: 'no-cache' });
+      if (!r.ok) { console.warn('boombox: no song list', r.status); return (this.records = []); }
+      const list = (await r.json()).filter((t) => t.file && t.title);
+      this.records = list.map((t) => ({ ...t, name: t.title, file: base + t.file }));
+    } catch (e) { console.warn('boombox: song list unreadable', e); this.records = []; }
+    return this.records;
+  }
+
+  /** Index of a song by name (saved between visits, since the list can change). */
+  find(name) { return this.list.findIndex((t) => t.name === name); }
 
   setup() {
     if (this.out) return true;
@@ -76,6 +97,7 @@ export class Jazz {
     const comp = ctx.createDynamicsCompressor();
     comp.threshold.value = -18; comp.ratio.value = 3;
     this.bus.connect(low);
+    this.tone = low;
     if (!this.lowPower) {
       // the room's echo: lovely, but heavy work for a tablet, so only on stronger devices
       const verb = ctx.createConvolver();
@@ -118,7 +140,9 @@ export class Jazz {
     this.fade.gain.cancelScheduledValues(this.ctx.currentTime);
     this.fade.gain.setValueAtTime(0.0001, this.ctx.currentTime);
     this.fade.gain.exponentialRampToValueAtTime(1, this.ctx.currentTime + 0.8);
-    this.startTrack(this.index);
+    // a recorded song that was only paused carries on where it stopped; anything else starts fresh
+    if (this.isRecord && this.loadedFile === this.track.file && !this.audio.ended) { this.recordOn = true; this.audio.play().catch(() => {}); }
+    else this.startTrack(this.index);
     // slower devices plan further ahead, so a busy moment on screen can't make the band stumble
     this.timer = setInterval(() => this.schedule(), this.lowPower ? 100 : 40);
     this.onChange?.();
@@ -133,13 +157,15 @@ export class Jazz {
     this.fade.gain.cancelScheduledValues(t);
     this.fade.gain.setValueAtTime(this.fade.gain.value, t);
     this.fade.gain.linearRampToValueAtTime(0, t + 0.4);
+    const a = this.audio;
+    if (a) setTimeout(() => { if (!this.playing) a.pause(); }, 450);
     this.onChange?.();
   }
 
   toggle() { return this.playing ? (this.pause(), false) : this.play(); }
 
   next(dir = 1) {
-    this.index = (this.index + dir + TRACKS.length) % TRACKS.length;
+    this.index = (this.index + dir + this.list.length) % this.list.length;
     if (this.playing) {
       const t = this.ctx.currentTime;
       this.fade.gain.cancelScheduledValues(t);
@@ -170,7 +196,10 @@ export class Jazz {
 
   // ---------- the band ----------
   startTrack(i) {
-    const tr = TRACKS[i];
+    const tr = this.list[i];
+    if (tr.file) return this.startRecord(tr);
+    this.audio?.pause();
+    this.recordOn = false;
     this.song = { tr, chords: halfBars(tr.prog), eighth: 60 / tr.bpm / 2 };
     this.step = 0;               // eighth-note counter from the start of the tune
     this.nextTime = this.ctx.currentTime + 0.12;
@@ -184,14 +213,31 @@ export class Jazz {
     this.trackLength = Math.max(120, formSecs * 3);
   }
 
+  /** Plays a recorded song from its file, through the boombox's tone, volume and level meter. */
+  startRecord(tr) {
+    this.recordOn = true;
+    if (!this.audio) {
+      this.audio = new Audio();
+      this.audio.preload = 'auto';
+      this.ctx.createMediaElementSource(this.audio).connect(this.tone);
+      this.audio.addEventListener('ended', () => { if (this.playing && this.recordOn) this.next(1); });
+      this.audio.addEventListener('error', () => { if (this.playing && this.recordOn) setTimeout(() => this.next(1), 500); });
+    }
+    this.audio.src = tr.file;
+    this.loadedFile = tr.file;
+    this.trackStart = this.ctx.currentTime;
+    this.audio.play().catch(() => {});
+  }
+
   schedule() {
+    if (this.recordOn) return;
     const ahead = this.ctx.currentTime + (this.lowPower ? 0.8 : 0.25);
     while (this.nextTime < ahead) {
       this.playStep(this.step, this.nextTime);
       this.step++;
       this.nextTime += this.song.eighth;
       if (this.nextTime - this.trackStart > this.trackLength && this.step % (this.song.chords.length * 4) === 0) {
-        this.index = (this.index + 1) % TRACKS.length;
+        this.index = (this.index + 1) % this.list.length;
         this.startTrack(this.index);
         this.onChange?.();
         return;

@@ -136,11 +136,22 @@ perf.onChange(applyPerf);
 applyPerf();
 music.index = Math.min(state.track ?? 0, TRACKS.length - 1);
 music.volume = state.musicVolume;
-music.onChange = () => { state.track = music.index; renderBoombox(); };
+music.onChange = () => {
+  if (state.trackName !== music.track.name) { state.trackName = music.track.name; if (mech) save(); }
+  renderBoombox();
+};
+// the recorded songs (if any) join the playlist ahead of the band; pick up the song from last time by its name
+const musicReady = music.loadRecords().then(() => {
+  const i = state.trackName ? music.find(state.trackName) : -1;
+  if (i >= 0) music.index = i;
+  else if (music.records.length && !state.trackName) music.index = 0;
+  else music.index = Math.min(music.records.length + (state.track ?? 0), music.list.length - 1);
+  renderBoombox();
+});
 let musicBeforeSim = false;
 /** Starts the music on the first tap or click (browsers only allow sound after one). */
 function startMusicIfWanted() {
-  if (state.musicOn && !music.playing && !sim && sfx.audioContext()) music.play();
+  musicReady.then(() => { if (state.musicOn && !music.playing && !sim && sfx.audioContext()) music.play(); });
 }
 blueprint = new Blueprint({
   renderer, scene, camera, controls, mech, state, save: () => save(),
@@ -995,6 +1006,12 @@ voice.setVoice(state.voiceId);
 // ---------- boombox ----------
 function renderBoombox() {
   $('bb-track').textContent = `${music.playing ? '♪' : '❚❚'} ${music.track.name}`;
+  // real songs carry their credit (artist, licence and where it came from)
+  const tr = music.track, cr = $('bb-credit');
+  cr.textContent = tr.file ? `${tr.artist ?? ''}${tr.license ? ` · ${tr.license}` : ''}` : 'Played live by the garage band';
+  const link = (href, text) => { const a = document.createElement('a'); a.href = href; a.target = '_blank'; a.rel = 'noopener'; a.textContent = text; cr.append(a); };
+  if (tr.url) link(tr.url, ' (source)');
+  if (/^CC BY 4\.0/.test(tr.license ?? '')) link('https://creativecommons.org/licenses/by/4.0/', ' (licence)');
   $('bb-play').textContent = music.playing ? '❚❚' : '▶';
   $('bb-volume').value = music.volume;
 }
@@ -1035,7 +1052,10 @@ async function musicCommand(action) {
     save();
     return talk(action === 'up' ? 'Turning it up!' : 'Turning it down.');
   }
-  if (action === 'what') return talk(music.playing ? `This is ${music.track.name}. All my own music, by the way.` : 'Nothing is playing. Say "play some jazz".');
+  if (action === 'what') {
+    if (!music.playing) return talk('Nothing is playing. Say "play some jazz".');
+    return talk(music.isRecord ? `This is ${music.track.name}${music.track.artist ? ` by ${music.track.artist}` : ''}.` : `This is ${music.track.name}. Our garage band made it up, by the way.`);
+  }
 }
 
 // ---------- pause menu and the app window ----------

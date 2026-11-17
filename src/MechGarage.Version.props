@@ -1,6 +1,6 @@
 <Project>
   <!-- The Mech Garage version, shared by the Windows and Android apps so one release carries both. Bump it here. -->
   <PropertyGroup>
-    <Version>0.3.2</Version>
+    <Version>0.3.3</Version>
   </PropertyGroup>
 </Project>

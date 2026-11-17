@@ -37,6 +37,12 @@
       "author": "Google and Microsoft",
       "license": "Apache-2.0 / MIT",
       "source": "https://github.com/dotnet/android-libraries"
+    },
+    {
+      "asset": "Boombox songs: Smooth Lovin, Bossa Antigua, Cool Vibes, Lobby Time, Hep Cats, Airport Lounge, Backed Vibes Clean (web/music)",
+      "author": "Kevin MacLeod (incompetech.com)",
+      "license": "CC BY 4.0",
+      "source": "https://incompetech.com/"
     }
   ]
 }

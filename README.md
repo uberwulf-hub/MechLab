@@ -26,8 +26,9 @@ Design and build your own mech in a high-tech garage, with a robot helper you na
 - **Make every part your own:** tap a fitted part and choose Customize: its own colours, size, length (arms and
   legs), a label stencilled on its containers, and a nickname. Or say "make the left arm bigger", "paint the legs red",
   "call the left arm Big Bertha", "write TITAN on the cockpit".
-- **The boombox** on the desk plays smooth jazz, made live in code by a little band (electric piano, walking bass,
-  brushed drums, sax or vibraphone): five original tunes that take turns. Tap it for controls, or ask the helper:
+- **The boombox** on the desk plays smooth jazz: seven real recordings by Kevin MacLeod (CC BY 4.0, see
+  [CREDITS.md](CREDITS.md)), then five tunes made live in code by a little garage band (electric piano, walking bass,
+  brushed drums, sax or vibraphone). Add your own songs in `web/music` (see its README). Tap it for controls, or ask the helper:
   "play some jazz", "next song", "turn it up", "stop the music".
 - **Full screen, no title bar** on Windows. **Exit** (top right, or Esc) opens the pause menu: back to the garage,
   window mode, minimize, or exit the game. F11 switches between full screen and a window.
